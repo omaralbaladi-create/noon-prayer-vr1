@@ -3,10 +3,32 @@ window.APP_CONFIG = {
   version: "1.0.0",
   storageKey: "noor-prayer-pro",
   backupVersion: 1,
+
   mecca: {
     lat: 21.4225,
     lng: 39.8262
   },
+
+  calculationMethods: [
+    { id: "UmmAlQura", labelAr: "أم القرى", labelEn: "Umm Al-Qura" },
+    { id: "MuslimWorldLeague", labelAr: "رابطة العالم الإسلامي", labelEn: "Muslim World League" },
+    { id: "NorthAmerica", labelAr: "أمريكا الشمالية", labelEn: "North America" },
+    { id: "Dubai", labelAr: "دبي", labelEn: "Dubai" },
+    { id: "Qatar", labelAr: "قطر", labelEn: "Qatar" }
+  ],
+
+  themes: [
+    { id: "emerald", labelAr: "المسجد الزمردي", labelEn: "Emerald Mosque" },
+    { id: "midnight", labelAr: "الأزرق الليلي", labelEn: "Midnight Blue" },
+    { id: "desert", labelAr: "الذهبي الصحراوي", labelEn: "Desert Gold" },
+    { id: "sunset", labelAr: "وهج الغروب", labelEn: "Sunset Glow" }
+  ],
+
+  adhanVoices: [
+    { id: "makkah", labelAr: "أذان مكة", labelEn: "Makkah style" },
+    { id: "madinah", labelAr: "أذان المدينة", labelEn: "Madinah style" }
+  ],
+
   presetCities: [
     { id: "riyadh", nameAr: "الرياض", nameEn: "Riyadh", lat: 24.7136, lng: 46.6753 },
     { id: "jeddah", nameAr: "جدة", nameEn: "Jeddah", lat: 21.5433, lng: 39.1728 },
@@ -22,10 +44,10 @@ window.APP_CONFIG = {
     { id: "istanbul", nameAr: "إسطنبول", nameEn: "Istanbul", lat: 41.0082, lng: 28.9784 },
     { id: "karachi", nameAr: "كراتشي", nameEn: "Karachi", lat: 24.8607, lng: 67.0011 },
     { id: "jakarta", nameAr: "جاكرتا", nameEn: "Jakarta", lat: -6.2088, lng: 106.8456 },
-    { id: "kuala-lumpur", nameAr: "كوالالمبور", nameEn: "Kuala Lumpur", lat: 3.1390, lng: 101.6869 },
+    { id: "kuala-lumpur", nameAr: "كوالالمبور", nameEn: "Kuala Lumpur", lat: 3.139, lng: 101.6869 },
     { id: "london", nameAr: "لندن", nameEn: "London", lat: 51.5072, lng: -0.1276 },
     { id: "paris", nameAr: "باريس", nameEn: "Paris", lat: 48.8566, lng: 2.3522 },
-    { id: "new-york", nameAr: "نيويورك", nameEn: "New York", lat: 40.7128, lng: -74.0060 },
+    { id: "new-york", nameAr: "نيويورك", nameEn: "New York", lat: 40.7128, lng: -74.006 },
     { id: "chicago", nameAr: "شيكاغو", nameEn: "Chicago", lat: 41.8781, lng: -87.6298 },
     { id: "toronto", nameAr: "تورونتو", nameEn: "Toronto", lat: 43.6532, lng: -79.3832 }
   ]
