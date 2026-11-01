@@ -24,15 +24,15 @@
   ];
 
   function lang() {
-    return window.APP_STATE.settings.lang === "en" ? "en" : "ar";
+    return window.I18N.getLang();
+  }
+
+  function t(key) {
+    return window.I18N.t(key);
   }
 
   function tSalah(key) {
     return salahLabels[lang()][key] || key;
-  }
-
-  function text(ar, en) {
-    return lang() === "ar" ? ar : en;
   }
 
   function showApiBanner(message) {
@@ -380,9 +380,9 @@
     window.addEventListener("beforeinstallprompt", (e) => {
       e.preventDefault();
       window.__deferredInstallPrompt = e;
-      window.DOM.setText("install-badge", text("التثبيت متاح", "Install available"));
+      window.DOM.setText("install-badge", t("installAvailable"));
       window.DOM.show(window.DOM.qs("pwa-banner"));
-      window.DOM.setText("pwa-banner", text("يمكنك تثبيت التطبيق على جهازك.", "You can install the app on your device."));
+      window.DOM.setText("pwa-banner", t("pwaInstallText"));
     });
   }
 
@@ -398,30 +398,27 @@
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
       return {
         valid: false,
-        message: text(
-          "يرجى إدخال خط العرض وخط الطول كأرقام صحيحة.",
-          "Please enter latitude and longitude as valid numbers."
-        )
+        message: lang() === "ar"
+          ? "يرجى إدخال خط العرض وخط الطول كأرقام صحيحة."
+          : "Please enter latitude and longitude as valid numbers."
       };
     }
 
     if (lat < -90 || lat > 90) {
       return {
         valid: false,
-        message: text(
-          "خط العرض يجب أن يكون بين ‎-90 و 90.",
-          "Latitude must be between -90 and 90."
-        )
+        message: lang() === "ar"
+          ? "خط العرض يجب أن يكون بين ‎-90 و 90."
+          : "Latitude must be between -90 and 90."
       };
     }
 
     if (lng < -180 || lng > 180) {
       return {
         valid: false,
-        message: text(
-          "خط الطول يجب أن يكون بين ‎-180 و 180.",
-          "Longitude must be between -180 and 180."
-        )
+        message: lang() === "ar"
+          ? "خط الطول يجب أن يكون بين ‎-180 و 180."
+          : "Longitude must be between -180 and 180."
       };
     }
 
@@ -438,27 +435,23 @@
 
     if (!latRaw || !lngRaw) {
       if (showValidationBanner) {
-        showApiBanner(
-          text(
-            "يرجى إدخال خط العرض وخط الطول.",
-            "Please enter both latitude and longitude."
-          )
-        );
+        showApiBanner(lang() === "ar"
+          ? "يرجى إدخال خط العرض وخط الطول."
+          : "Please enter both latitude and longitude.");
       }
       return false;
     }
 
     const lat = Number(latRaw);
     const lng = Number(lngRaw);
-
     const validation = validateCoordinates(lat, lng);
+
     if (!validation.valid) {
       if (showValidationBanner) showApiBanner(validation.message);
       return false;
     }
 
     hideApiBanner();
-
     window.APP_STATE.location.lat = lat;
     window.APP_STATE.location.lng = lng;
 
@@ -466,7 +459,7 @@
       if (window.APP_STATE.location.lookupCity) {
         reverseLookupCurrentLocation();
       } else {
-        window.APP_STATE.location.cityName = text("موقع مخصص", "Custom location");
+        window.APP_STATE.location.cityName = t("customLocation");
       }
     }
 
@@ -551,12 +544,9 @@
         persistAndRender();
       },
       () => {
-        showApiBanner(
-          text(
-            "تعذر الوصول إلى GPS، تم الاحتفاظ بالموقع الحالي.",
-            "Unable to access GPS. Current location was kept."
-          )
-        );
+        showApiBanner(lang() === "ar"
+          ? "تعذر الوصول إلى GPS، تم الاحتفاظ بالموقع الحالي."
+          : "Unable to access GPS. Current location was kept.");
       }
     );
   }
@@ -568,7 +558,7 @@
 
     const status = window.DOM.qs("city-search-status");
     const results = window.DOM.qs("city-search-results");
-    status.textContent = text("جارٍ البحث...", "Searching...");
+    status.textContent = lang() === "ar" ? "جارٍ البحث..." : "Searching...";
     results.innerHTML = "";
 
     try {
@@ -579,8 +569,8 @@
       const data = await res.json();
 
       status.textContent = data.length
-        ? text("اختر نتيجة:", "Choose a result:")
-        : text("لا توجد نتائج.", "No results.");
+        ? (lang() === "ar" ? "اختر نتيجة:" : "Choose a result:")
+        : (lang() === "ar" ? "لا توجد نتائج." : "No results.");
 
       data.slice(0, 5).forEach((item) => {
         const btn = document.createElement("button");
@@ -599,7 +589,7 @@
       });
     } catch (error) {
       console.error(error);
-      status.textContent = text("حدث خطأ أثناء البحث.", "Search failed.");
+      status.textContent = lang() === "ar" ? "حدث خطأ أثناء البحث." : "Search failed.";
     }
   }
 
@@ -627,15 +617,17 @@
 
   function renderLocationLabel() {
     const { cityName, lat, lng } = window.APP_STATE.location;
-    const safeName = cityName || text("موقع غير محدد", "Unknown location");
+    const safeName = cityName || t("unknownLocation");
     window.DOM.setText("location-label", `${safeName} • ${Number(lat).toFixed(2)}, ${Number(lng).toFixed(2)}`);
   }
 
   function renderBadges() {
     window.DOM.setText("version-badge", `v${window.APP_CONFIG.version}`);
-    window.DOM.setText("ramadan-badge", window.APP_STATE.settings.ramadanMode ? text("وضع رمضان", "Ramadan mode") : text("الوضع العادي", "Normal mode"));
-    window.DOM.setText("notif-badge", window.APP_STATE.settings.notifications.enabled ? text("الإشعارات مفعلة", "Notifications on") : text("الإشعارات متوقفة", "Notifications off"));
-    window.DOM.setText("audio-badge", window.APP_STATE.settings.notifications.audioEnabled ? text("صوت الأذان مفعّل", "Adhan audio on") : text("صوت الأذان متوقف", "Adhan audio off"));
+    window.DOM.setText("install-badge", t("installReady"));
+    window.DOM.setText("ramadan-badge", window.APP_STATE.settings.ramadanMode ? t("ramadanModeBadge") : t("normalMode"));
+    window.DOM.setText("notif-badge", window.APP_STATE.settings.notifications.enabled ? t("notificationsOn") : t("notificationsOff"));
+    window.DOM.setText("audio-badge", window.APP_STATE.settings.notifications.audioEnabled ? t("adhanAudioOn") : t("adhanAudioOff"));
+    window.DOM.setText("lang-badge", lang().toUpperCase());
   }
 
   function renderSalahTracker() {
@@ -665,7 +657,7 @@
     const pct = window.Utils.percent(done, 5);
 
     window.DOM.qs("salah-progress-bar").style.width = `${pct}%`;
-    window.DOM.setText("salah-progress-text", text(`${done} / 5 مكتملة`, `${done} / 5 completed`));
+    window.DOM.setText("salah-progress-text", lang() === "ar" ? `${done} / 5 مكتملة` : `${done} / 5 completed`);
   }
 
   function saveTodaySalahToHistory() {
@@ -741,7 +733,7 @@
         <div class="azkar-arabic">${item.arabic}</div>
         <div class="actions">
           <span>${count} / ${item.repeat}</span>
-          <button class="btn-secondary">${done ? text("مكتمل", "Done") : text("عدّ", "Count")}</button>
+          <button class="btn-secondary">${done ? t("done") : t("count")}</button>
         </div>
       `;
 
@@ -767,8 +759,8 @@
     window.DOM.setText("dhikr-title", lang() === "ar" ? current.titleAr : current.titleEn);
     window.DOM.setText("dhikr-ar", current.arabic);
     window.DOM.setText("tasbih-display", String(count));
-    window.DOM.setText("tasbih-target", text(`الهدف: ${current.target}`, `Target: ${current.target}`));
-    window.DOM.setText("tasbih-msg", count >= current.target ? text("تم بلوغ الهدف", "Target reached") : "");
+    window.DOM.setText("tasbih-target", `${t("target")}: ${current.target}`);
+    window.DOM.setText("tasbih-msg", count >= current.target ? t("completed") : "");
   }
 
   function incrementTasbih() {
@@ -835,20 +827,17 @@
     const eligible = hawl && wealth >= nisab;
     const due = eligible ? wealth * 0.025 : 0;
 
-    window.DOM.setText("zakat-nisab-label", basis === "gold"
-      ? text("النصاب (85 غرام ذهب)", "Nisab (85g gold)")
-      : text("النصاب (595 غرام فضة)", "Nisab (595g silver)")
-    );
+    window.DOM.setText("zakat-nisab-label", basis === "gold" ? (lang() === "ar" ? "النصاب (85 غرام ذهب)" : "Nisab (85g gold)") : (lang() === "ar" ? "النصاب (595 غرام فضة)" : "Nisab (595g silver)"));
     window.DOM.setText("zakat-nisab-val", window.Utils.formatCurrency(nisab));
     window.DOM.setText("zakat-total", window.Utils.formatCurrency(wealth));
     window.DOM.setText("zakat-due", window.Utils.formatCurrency(due));
     window.DOM.setText(
       "zakat-status-msg",
       !hawl
-        ? text("الزكاة لا تُحسب حتى يمر حول قمري كامل.", "Zakat is not due until one lunar year passes.")
+        ? (lang() === "ar" ? "الزكاة لا تُحسب حتى يمر حول قمري كامل." : "Zakat is not due until one lunar year passes.")
         : wealth < nisab
-          ? text("المبلغ أقل من النصاب.", "Amount is below nisab.")
-          : text("بلغ المال النصاب وتحققت الشروط الأساسية.", "Wealth meets nisab and basic conditions.")
+          ? (lang() === "ar" ? "المبلغ أقل من النصاب." : "Amount is below nisab.")
+          : (lang() === "ar" ? "بلغ المال النصاب وتحققت الشروط الأساسية." : "Wealth meets nisab and basic conditions.")
     );
   }
 
@@ -882,29 +871,29 @@
   }
 
   function exportBackup() {
-    const textData = window.StorageAPI.exportBackup();
-    window.DOM.qs("backup-textarea").value = textData;
-    window.Utils.downloadText("noor-prayer-backup.json", textData, "application/json");
+    const text = window.StorageAPI.exportBackup();
+    window.DOM.qs("backup-textarea").value = text;
+    window.Utils.downloadText("noor-prayer-backup.json", text, "application/json");
   }
 
   async function copyBackup() {
-    const textData = window.StorageAPI.exportBackup();
-    window.DOM.qs("backup-textarea").value = textData;
+    const text = window.StorageAPI.exportBackup();
+    window.DOM.qs("backup-textarea").value = text;
     try {
-      await navigator.clipboard.writeText(textData);
+      await navigator.clipboard.writeText(text);
       window.DOM.show(window.DOM.qs("backup-banner"));
-      window.DOM.setText("backup-banner", text("تم نسخ النسخة الاحتياطية.", "Backup copied."));
+      window.DOM.setText("backup-banner", lang() === "ar" ? "تم نسخ النسخة الاحتياطية." : "Backup copied.");
     } catch (_) {}
   }
 
   function importBackup() {
     try {
-      const backupText = window.DOM.qs("backup-textarea").value;
-      window.StorageAPI.importBackup(backupText);
+      const text = window.DOM.qs("backup-textarea").value;
+      window.StorageAPI.importBackup(text);
       applyStateToUI();
       renderAll();
       window.DOM.show(window.DOM.qs("backup-banner"));
-      window.DOM.setText("backup-banner", text("تم استيراد النسخة الاحتياطية.", "Backup imported."));
+      window.DOM.setText("backup-banner", lang() === "ar" ? "تم استيراد النسخة الاحتياطية." : "Backup imported.");
     } catch (error) {
       console.error(error);
     }
@@ -924,10 +913,7 @@
       banner.classList.add("hidden");
     } else {
       banner.classList.remove("hidden");
-      banner.textContent = text(
-        "أنت غير متصل الآن. سيستمر التطبيق بالعمل بقدر الإمكان دون إنترنت.",
-        "You are offline now. The app will keep working as much as possible."
-      );
+      banner.textContent = t("offlineText");
     }
   }
 
