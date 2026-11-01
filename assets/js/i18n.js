@@ -85,6 +85,14 @@
       zakatNisab: "النصاب",
       zakatWealth: "المال الخاضع للزكاة",
       zakatDue: "الزكاة الواجبة (2.5%)",
+      zakatBasis: "أساس النصاب",
+      zakatGoldPrice: "سعر غرام الذهب عيار 24",
+      zakatSilverPrice: "سعر غرام الفضة",
+      zakatCash: "النقد",
+      zakatGoldAssets: "قيمة الذهب والفضة",
+      zakatStocks: "الاستثمارات والأسهم",
+      zakatDebt: "الديون المستحقة",
+      zakatHawl: "مرّ حول قمري كامل على هذا المال",
 
       target: "الهدف",
       completed: "مكتمل",
@@ -99,10 +107,15 @@
 
       customLocation: "موقع مخصص",
       unknownLocation: "موقع غير محدد",
+      locating: "جارٍ تحديد الموقع...",
       searchCityLabel: "ابحث عن مدينة أو منطقة",
       searchButton: "بحث",
       favorites: "المفضلة",
       recents: "عمليات البحث الأخيرة",
+      searching: "جارٍ البحث...",
+      chooseResult: "اختر نتيجة:",
+      noResults: "لا توجد نتائج.",
+      searchFailed: "حدث خطأ أثناء البحث.",
 
       atPrayerTime: "وقت الصلاة",
       minutesBefore5: "قبل 5 دقائق",
@@ -115,7 +128,25 @@
       searchForCity: "البحث عن مدينة",
 
       standard: "قياسي",
-      hanafi: "حنفي"
+      hanafi: "حنفي",
+
+      monthDay: "اليوم",
+      sunrise: "الشروق",
+      iqamah: "الإقامة",
+
+      update: "تحديث",
+      confirm: "تأكيد",
+      areYouSure: "هل أنت متأكد؟",
+      cancel: "إلغاء",
+
+      noscript: "JavaScript مطلوب لكي يعمل NoorPrayer Pro في حساب المواقيت وإدارة الإعدادات والعمل دون اتصال.",
+      backupCopied: "تم نسخ النسخة الاحتياطية.",
+      backupImported: "تم استيراد النسخة الاحتياطية.",
+      permissionStatus: "حالة إذن الإشعارات",
+
+      latPlaceholder: "خط العرض",
+      lngPlaceholder: "خط الطول",
+      citySearchPlaceholder: "مثال: الرياض، جدة، الخبر"
     },
 
     en: {
@@ -203,6 +234,14 @@
       zakatNisab: "Nisab",
       zakatWealth: "Zakatable wealth",
       zakatDue: "Zakat due (2.5%)",
+      zakatBasis: "Nisab basis",
+      zakatGoldPrice: "24k gold price per gram",
+      zakatSilverPrice: "Silver price per gram",
+      zakatCash: "Cash",
+      zakatGoldAssets: "Gold and silver value",
+      zakatStocks: "Investments and stocks",
+      zakatDebt: "Due debts",
+      zakatHawl: "A full lunar year has passed over this wealth",
 
       target: "Target",
       completed: "Completed",
@@ -217,10 +256,15 @@
 
       customLocation: "Custom location",
       unknownLocation: "Unknown location",
+      locating: "Detecting location...",
       searchCityLabel: "Search for a city or area",
       searchButton: "Search",
       favorites: "Favorites",
       recents: "Recent searches",
+      searching: "Searching...",
+      chooseResult: "Choose a result:",
+      noResults: "No results.",
+      searchFailed: "Search failed.",
 
       atPrayerTime: "At prayer time",
       minutesBefore5: "5 minutes before",
@@ -233,7 +277,25 @@
       searchForCity: "Search for a city",
 
       standard: "Standard",
-      hanafi: "Hanafi"
+      hanafi: "Hanafi",
+
+      monthDay: "Day",
+      sunrise: "Sunrise",
+      iqamah: "Iqamah",
+
+      update: "Update",
+      confirm: "Confirm",
+      areYouSure: "Are you sure?",
+      cancel: "Cancel",
+
+      noscript: "JavaScript is required for NoorPrayer Pro to calculate prayer times, manage settings, and run offline.",
+      backupCopied: "Backup copied.",
+      backupImported: "Backup imported.",
+      permissionStatus: "Notification permission",
+
+      latPlaceholder: "Latitude",
+      lngPlaceholder: "Longitude",
+      citySearchPlaceholder: "e.g. Riyadh, Jeddah, Khobar"
     }
   };
 
@@ -256,10 +318,9 @@
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
     document.body.dir = lang === "ar" ? "rtl" : "ltr";
+    document.title = t("appName");
 
     setTextIf("app-title", "appName");
-    setTextIf("lang-badge", "appName");
-
     setTextIf("next-prayer-label", "nextPrayer");
     setTextIf("footer-note", "footerNote");
     setTextIf("close-settings-btn", "close");
@@ -278,8 +339,46 @@
     setTextIf("reset-khatm-btn", "newKhatm");
     setTextIf("export-csv-btn", "exportCsv");
 
+    setTextIf("history-days-label", "statsSavedDays");
+    setTextIf("history-perfect-label", "statsPerfectDays");
+    setTextIf("history-total-label", "statsAverage");
+
+    setTextIf("zakat-total-label", "zakatWealth");
+    setTextIf("zakat-due-label", "zakatDue");
+
+    setTextIf("zakat-basis-label", "zakatBasis");
+    setTextIf("zakat-gold-price-label", "zakatGoldPrice");
+    setTextIf("zakat-silver-price-label", "zakatSilverPrice");
+    setTextIf("zakat-cash-label", "zakatCash");
+    setTextIf("zakat-gold-label", "zakatGoldAssets");
+    setTextIf("zakat-stocks-label", "zakatStocks");
+    setTextIf("zakat-debt-label", "zakatDebt");
+    setTextIf("zakat-hawl-label", "zakatHawl");
+
+    setTextIf("month-th-day", "monthDay");
+    setTextIf("month-th-fajr", "prayerReminderFajr");
+    setTextIf("month-th-sunrise", "sunrise");
+    setTextIf("month-th-dhuhr", "prayerReminderDhuhr");
+    setTextIf("month-th-asr", "prayerReminderAsr");
+    setTextIf("month-th-maghrib", "prayerReminderMaghrib");
+    setTextIf("month-th-isha", "prayerReminderIsha");
+    setTextIf("month-th-iqamah", "iqamah");
+
+    setTextIf("apply-update-btn", "update");
+    setTextIf("dismiss-update-btn", "close");
+    setTextIf("confirm-title", "confirm");
+    setTextIf("confirm-message", "areYouSure");
+    setTextIf("confirm-cancel-btn", "cancel");
+    setTextIf("confirm-ok-btn", "confirm");
+    setTextIf("noscript-text", "noscript");
+
     const langBadge = document.getElementById("lang-badge");
     if (langBadge) langBadge.textContent = lang.toUpperCase();
+
+    const locationLabel = document.getElementById("location-label");
+    if (locationLabel && !locationLabel.dataset.locked && !locationLabel.textContent.trim()) {
+      locationLabel.textContent = t("locating");
+    }
 
     const mainTabs = document.querySelectorAll("#main-nav-tabs .tab-btn");
     const mainTabMap = [
@@ -322,6 +421,13 @@
 
     const azkarNote = document.querySelector(".azkar-note");
     if (azkarNote) azkarNote.textContent = t("azkarNote");
+
+    const latInput = document.getElementById("loc-lat");
+    const lngInput = document.getElementById("loc-lng");
+    const citySearchInput = document.getElementById("city-search-input");
+    if (latInput) latInput.placeholder = t("latPlaceholder");
+    if (lngInput) lngInput.placeholder = t("lngPlaceholder");
+    if (citySearchInput) citySearchInput.placeholder = t("citySearchPlaceholder");
 
     updateSettingsLabels();
   }
