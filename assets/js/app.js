@@ -49,8 +49,115 @@
     banner.classList.add("hidden");
   }
 
+  function ensurePrayerConfigBridge() {
+    if (!window.Prayer?.getConfig) return;
+
+    const prayerConfig = window.Prayer.getConfig();
+
+    if (!window.APP_STATE.settings.calcMethod) {
+      window.APP_STATE.settings.calcMethod = prayerConfig.settings.calcMethod;
+    }
+    if (!window.APP_STATE.settings.asrMethod) {
+      window.APP_STATE.settings.asrMethod = prayerConfig.settings.asrMethod;
+    }
+    if (!window.APP_STATE.settings.highLatitudeRule) {
+      window.APP_STATE.settings.highLatitudeRule = prayerConfig.settings.highLatitudeRule;
+    }
+    if (typeof window.APP_STATE.settings.midnightMode === "undefined") {
+      window.APP_STATE.settings.midnightMode = prayerConfig.settings.midnightMode;
+    }
+    if (typeof window.APP_STATE.settings.ramadanMode === "undefined") {
+      window.APP_STATE.settings.ramadanMode = prayerConfig.settings.ramadanMode;
+    }
+
+    window.APP_STATE.settings.offsets = {
+      fajr: 0,
+      sunrise: 0,
+      dhuhr: 0,
+      asr: 0,
+      maghrib: 0,
+      isha: 0,
+      midnight: 0,
+      ...(prayerConfig.settings.offsets || {}),
+      ...(window.APP_STATE.settings.offsets || {})
+    };
+
+    window.APP_STATE.settings.customCalc = {
+      fajr: "",
+      maghrib: "",
+      isha: "",
+      midnight: "",
+      ...(prayerConfig.settings.customCalc || {}),
+      ...(window.APP_STATE.settings.customCalc || {})
+    };
+
+    window.APP_STATE.settings.iqamah = {
+      fajr: "",
+      dhuhr: "",
+      asr: "",
+      maghrib: "",
+      isha: "",
+      ...(prayerConfig.settings.iqamah || {}),
+      ...(window.APP_STATE.settings.iqamah || {})
+    };
+
+    syncPrayerConfigFromAppState(false);
+  }
+
+  function syncPrayerConfigFromAppState(alsoRender = true) {
+    if (!window.Prayer?.updateConfig) return;
+
+    const lat = Number(window.APP_STATE.location.lat);
+    const lng = Number(window.APP_STATE.location.lng);
+
+    window.Prayer.updateConfig({
+      location: {
+        lat: Number.isFinite(lat) ? lat : 24.7136,
+        lng: Number.isFinite(lng) ? lng : 46.6753
+      },
+      settings: {
+        calcMethod: window.APP_STATE.settings.calcMethod || "Makkah",
+        asrMethod: window.APP_STATE.settings.asrMethod || "standard",
+        highLatitudeRule: window.APP_STATE.settings.highLatitudeRule || "NightMiddle",
+        midnightMode: window.APP_STATE.settings.midnightMode || "",
+        ramadanMode: !!window.APP_STATE.settings.ramadanMode,
+        offsets: {
+          fajr: Number(window.APP_STATE.settings.offsets?.fajr || 0),
+          sunrise: Number(window.APP_STATE.settings.offsets?.sunrise || 0),
+          dhuhr: Number(window.APP_STATE.settings.offsets?.dhuhr || 0),
+          asr: Number(window.APP_STATE.settings.offsets?.asr || 0),
+          maghrib: Number(window.APP_STATE.settings.offsets?.maghrib || 0),
+          isha: Number(window.APP_STATE.settings.offsets?.isha || 0),
+          midnight: Number(window.APP_STATE.settings.offsets?.midnight || 0)
+        },
+        customCalc: {
+          fajr: String(window.APP_STATE.settings.customCalc?.fajr || ""),
+          maghrib: String(window.APP_STATE.settings.customCalc?.maghrib || ""),
+          isha: String(window.APP_STATE.settings.customCalc?.isha || ""),
+          midnight: String(window.APP_STATE.settings.customCalc?.midnight || "")
+        },
+        iqamah: {
+          fajr: String(window.APP_STATE.settings.iqamah?.fajr || ""),
+          dhuhr: String(window.APP_STATE.settings.iqamah?.dhuhr || ""),
+          asr: String(window.APP_STATE.settings.iqamah?.asr || ""),
+          maghrib: String(window.APP_STATE.settings.iqamah?.maghrib || ""),
+          isha: String(window.APP_STATE.settings.iqamah?.isha || "")
+        }
+      },
+      ui: {
+        currentMonthOffset: Number(window.APP_STATE.ui.currentMonthOffset || 0)
+      }
+    });
+
+    if (alsoRender) {
+      window.Prayer.renderTodayPrayerList?.();
+      window.Prayer.renderMonthTable?.();
+    }
+  }
+
   function init() {
     window.StorageAPI.loadState();
+    ensurePrayerConfigBridge();
     ensureDailyReset();
     applyStateToUI();
     bindEvents();
@@ -100,10 +207,18 @@
     window.DOM.setValue("theme-select", window.APP_STATE.settings.theme);
     window.DOM.setValue("loc-mode", window.APP_STATE.location.mode);
     window.DOM.setChecked("lookup-city", window.APP_STATE.location.lookupCity);
-    window.DOM.setValue("calc-method", window.APP_STATE.settings.calcMethod);
-    window.DOM.setValue("asr-method", window.APP_STATE.settings.asrMethod);
-    window.DOM.setChecked("ramadan-mode", window.APP_STATE.settings.ramadanMode);
-    window.DOM.setChecked("debug-enabled", window.APP_STATE.settings.debugEnabled);
+
+    window.DOM.setValue("calc-method", window.APP_STATE.settings.calcMethod || "Makkah");
+    window.DOM.setValue("asr-method", window.APP_STATE.settings.asrMethod || "standard");
+    window.DOM.setValue("high-latitude-rule", window.APP_STATE.settings.highLatitudeRule || "NightMiddle");
+    window.DOM.setValue("midnight-mode", window.APP_STATE.settings.midnightMode || "");
+    window.DOM.setChecked("ramadan-mode", !!window.APP_STATE.settings.ramadanMode);
+    window.DOM.setChecked("debug-enabled", !!window.APP_STATE.settings.debugEnabled);
+
+    window.DOM.setValue("custom-fajr", window.APP_STATE.settings.customCalc?.fajr || "");
+    window.DOM.setValue("custom-maghrib", window.APP_STATE.settings.customCalc?.maghrib || "");
+    window.DOM.setValue("custom-isha", window.APP_STATE.settings.customCalc?.isha || "");
+    window.DOM.setValue("custom-midnight", window.APP_STATE.settings.customCalc?.midnight || "");
 
     window.DOM.setValue("loc-lat", window.APP_STATE.location.lat ?? "");
     window.DOM.setValue("loc-lng", window.APP_STATE.location.lng ?? "");
@@ -124,11 +239,11 @@
     window.DOM.setChecked("notify-maghrib", notif.prayers.maghrib);
     window.DOM.setChecked("notify-isha", notif.prayers.isha);
 
-    Object.entries(window.APP_STATE.settings.offsets).forEach(([key, value]) => {
+    Object.entries(window.APP_STATE.settings.offsets || {}).forEach(([key, value]) => {
       window.DOM.setValue(`offset-${key}`, value);
     });
 
-    Object.entries(window.APP_STATE.settings.iqamah).forEach(([key, value]) => {
+    Object.entries(window.APP_STATE.settings.iqamah || {}).forEach(([key, value]) => {
       window.DOM.setValue(`iqamah-${key}`, value);
     });
 
@@ -278,12 +393,42 @@
       persistAndRender();
     });
 
+    window.DOM.on("high-latitude-rule", "change", (e) => {
+      window.APP_STATE.settings.highLatitudeRule = e.target.value;
+      persistAndRender();
+    });
+
+    window.DOM.on("midnight-mode", "change", (e) => {
+      window.APP_STATE.settings.midnightMode = e.target.value;
+      persistAndRender();
+    });
+
     window.DOM.on("ramadan-mode", "change", (e) => {
       window.APP_STATE.settings.ramadanMode = e.target.checked;
       persistAndRender();
     });
 
-    ["fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha"].forEach((key) => {
+    window.DOM.on("custom-fajr", "change", (e) => {
+      window.APP_STATE.settings.customCalc.fajr = e.target.value.trim();
+      persistAndRender();
+    });
+
+    window.DOM.on("custom-maghrib", "change", (e) => {
+      window.APP_STATE.settings.customCalc.maghrib = e.target.value.trim();
+      persistAndRender();
+    });
+
+    window.DOM.on("custom-isha", "change", (e) => {
+      window.APP_STATE.settings.customCalc.isha = e.target.value.trim();
+      persistAndRender();
+    });
+
+    window.DOM.on("custom-midnight", "change", (e) => {
+      window.APP_STATE.settings.customCalc.midnight = e.target.value.trim();
+      persistAndRender();
+    });
+
+    ["fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha", "midnight"].forEach((key) => {
       window.DOM.on(`offset-${key}`, "change", (e) => {
         window.APP_STATE.settings.offsets[key] = Number(e.target.value || 0);
         persistAndRender();
@@ -308,11 +453,13 @@
 
     window.DOM.on("month-prev-btn", "click", () => {
       window.APP_STATE.ui.currentMonthOffset -= 1;
+      syncPrayerConfigFromAppState(false);
       persistAndRender();
     });
 
     window.DOM.on("month-next-btn", "click", () => {
       window.APP_STATE.ui.currentMonthOffset += 1;
+      syncPrayerConfigFromAppState(false);
       persistAndRender();
     });
 
@@ -620,6 +767,7 @@
   function renderAll() {
     renderLocationLabel();
     renderBadges();
+    syncPrayerConfigFromAppState(false);
     window.Prayer?.renderTodayPrayerList?.();
     window.Prayer?.renderMonthTable?.();
     renderSalahTracker();
@@ -945,6 +1093,7 @@
     try {
       const text = window.DOM.qs("backup-textarea")?.value || "";
       window.StorageAPI.importBackup(text);
+      ensurePrayerConfigBridge();
       applyStateToUI();
       renderAll();
       window.DOM.show("backup-banner");
@@ -988,6 +1137,7 @@
   }
 
   function persistAndRender() {
+    syncPrayerConfigFromAppState(false);
     applyStateToUI();
     renderAll();
     window.StorageAPI.saveState();
