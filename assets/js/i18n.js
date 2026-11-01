@@ -53,6 +53,13 @@
       lookupCity: "جلب اسم المدينة من الإحداثيات",
       calcMethod: "طريقة الحساب",
       asrMethod: "حساب العصر",
+      highLatitudeRule: "قاعدة خطوط العرض العالية",
+      midnightMode: "طريقة منتصف الليل",
+      customCalcValues: "القيم المخصصة لطريقة الحساب",
+      customFajr: "فجر مخصص",
+      customMaghrib: "مغرب مخصص",
+      customIsha: "عشاء مخصص",
+      customMidnight: "منتصف ليل مخصص",
       theme: "المظهر",
       ramadanMode: "تفعيل وضع رمضان",
       manualOffsets: "الإزاحات اليدوية للمواقيت",
@@ -129,9 +136,21 @@
 
       standard: "قياسي",
       hanafi: "حنفي",
+      nightMiddle: "منتصف الليل",
+      angleBased: "حسب الزاوية",
+      oneSeventh: "سبع الليل",
+      useMethodDefault: "استخدام الافتراضي للطريقة",
+      standardMidnight: "قياسي",
+      jafari: "جعفري",
 
       monthDay: "اليوم",
+      fajr: "الفجر",
+      dhuhr: "الظهر",
+      asr: "العصر",
+      maghrib: "المغرب",
+      isha: "العشاء",
       sunrise: "الشروق",
+      midnight: "منتصف الليل",
       iqamah: "الإقامة",
 
       update: "تحديث",
@@ -146,7 +165,11 @@
 
       latPlaceholder: "خط العرض",
       lngPlaceholder: "خط الطول",
-      citySearchPlaceholder: "مثال: الرياض، جدة، الخبر"
+      citySearchPlaceholder: "مثال: الرياض، جدة، الخبر",
+
+      customFajrPlaceholder: "مثال: 18",
+      customMaghribPlaceholder: "مثال: sunset أو 4",
+      customIshaPlaceholder: "مثال: 17 أو 90 min"
     },
 
     en: {
@@ -202,6 +225,13 @@
       lookupCity: "Fetch city name from coordinates",
       calcMethod: "Calculation method",
       asrMethod: "Asr method",
+      highLatitudeRule: "High-latitude rule",
+      midnightMode: "Midnight mode",
+      customCalcValues: "Custom calculation values",
+      customFajr: "Custom Fajr",
+      customMaghrib: "Custom Maghrib",
+      customIsha: "Custom Isha",
+      customMidnight: "Custom midnight",
       theme: "Theme",
       ramadanMode: "Enable Ramadan mode",
       manualOffsets: "Manual prayer offsets",
@@ -278,9 +308,21 @@
 
       standard: "Standard",
       hanafi: "Hanafi",
+      nightMiddle: "Night Middle",
+      angleBased: "Angle Based",
+      oneSeventh: "One Seventh",
+      useMethodDefault: "Use method default",
+      standardMidnight: "Standard",
+      jafari: "Jafari",
 
       monthDay: "Day",
+      fajr: "Fajr",
+      dhuhr: "Dhuhr",
+      asr: "Asr",
+      maghrib: "Maghrib",
+      isha: "Isha",
       sunrise: "Sunrise",
+      midnight: "Midnight",
       iqamah: "Iqamah",
 
       update: "Update",
@@ -295,7 +337,11 @@
 
       latPlaceholder: "Latitude",
       lngPlaceholder: "Longitude",
-      citySearchPlaceholder: "e.g. Riyadh, Jeddah, Khobar"
+      citySearchPlaceholder: "e.g. Riyadh, Jeddah, Khobar",
+
+      customFajrPlaceholder: "e.g. 18",
+      customMaghribPlaceholder: "e.g. sunset or 4",
+      customIshaPlaceholder: "e.g. 17 or 90 min"
     }
   };
 
@@ -356,12 +402,12 @@
     setTextIf("zakat-hawl-label", "zakatHawl");
 
     setTextIf("month-th-day", "monthDay");
-    setTextIf("month-th-fajr", "prayerReminderFajr");
+    setTextIf("month-th-fajr", "fajr");
     setTextIf("month-th-sunrise", "sunrise");
-    setTextIf("month-th-dhuhr", "prayerReminderDhuhr");
-    setTextIf("month-th-asr", "prayerReminderAsr");
-    setTextIf("month-th-maghrib", "prayerReminderMaghrib");
-    setTextIf("month-th-isha", "prayerReminderIsha");
+    setTextIf("month-th-dhuhr", "dhuhr");
+    setTextIf("month-th-asr", "asr");
+    setTextIf("month-th-maghrib", "maghrib");
+    setTextIf("month-th-isha", "isha");
     setTextIf("month-th-iqamah", "iqamah");
 
     setTextIf("apply-update-btn", "update");
@@ -425,9 +471,16 @@
     const latInput = document.getElementById("loc-lat");
     const lngInput = document.getElementById("loc-lng");
     const citySearchInput = document.getElementById("city-search-input");
+    const customFajrInput = document.getElementById("custom-fajr");
+    const customMaghribInput = document.getElementById("custom-maghrib");
+    const customIshaInput = document.getElementById("custom-isha");
+
     if (latInput) latInput.placeholder = t("latPlaceholder");
     if (lngInput) lngInput.placeholder = t("lngPlaceholder");
     if (citySearchInput) citySearchInput.placeholder = t("citySearchPlaceholder");
+    if (customFajrInput) customFajrInput.placeholder = t("customFajrPlaceholder");
+    if (customMaghribInput) customMaghribInput.placeholder = t("customMaghribPlaceholder");
+    if (customIshaInput) customIshaInput.placeholder = t("customIshaPlaceholder");
 
     updateSettingsLabels();
   }
@@ -447,6 +500,12 @@
       "lookup-city": "lookupCity",
       "calc-method": "calcMethod",
       "asr-method": "asrMethod",
+      "high-latitude-rule": "highLatitudeRule",
+      "midnight-mode": "midnightMode",
+      "custom-fajr": "customFajr",
+      "custom-maghrib": "customMaghrib",
+      "custom-isha": "customIsha",
+      "custom-midnight": "customMidnight",
       "theme-select": "theme",
       "ramadan-mode": "ramadanMode",
       "adhan-audio-select": "adhanVoice",
@@ -469,10 +528,12 @@
     });
 
     const h4s = modal.querySelectorAll("h4");
-    if (h4s[0]) h4s[0].textContent = t("manualOffsets");
-    if (h4s[1]) h4s[1].textContent = t("iqamahTimes");
-    if (h4s[2]) h4s[2].textContent = t("prayerAlerts");
-    if (h4s[3]) h4s[3].textContent = t("backupRestore");
+    if (h4s[0]) h4s[0].textContent = t("calcMethod");
+    if (h4s[1]) h4s[1].textContent = t("customCalcValues");
+    if (h4s[2]) h4s[2].textContent = t("manualOffsets");
+    if (h4s[3]) h4s[3].textContent = t("iqamahTimes");
+    if (h4s[4]) h4s[4].textContent = t("prayerAlerts");
+    if (h4s[5]) h4s[5].textContent = t("backupRestore");
 
     const locMode = document.getElementById("loc-mode");
     if (locMode && locMode.options.length >= 4) {
@@ -486,6 +547,27 @@
     if (asrMethod && asrMethod.options.length >= 2) {
       asrMethod.options[0].textContent = t("standard");
       asrMethod.options[1].textContent = t("hanafi");
+    }
+
+    const highLatitudeRule = document.getElementById("high-latitude-rule");
+    if (highLatitudeRule && highLatitudeRule.options.length >= 3) {
+      highLatitudeRule.options[0].textContent = t("nightMiddle");
+      highLatitudeRule.options[1].textContent = t("angleBased");
+      highLatitudeRule.options[2].textContent = t("oneSeventh");
+    }
+
+    const midnightMode = document.getElementById("midnight-mode");
+    if (midnightMode && midnightMode.options.length >= 3) {
+      midnightMode.options[0].textContent = t("useMethodDefault");
+      midnightMode.options[1].textContent = t("standardMidnight");
+      midnightMode.options[2].textContent = t("jafari");
+    }
+
+    const customMidnight = document.getElementById("custom-midnight");
+    if (customMidnight && customMidnight.options.length >= 3) {
+      customMidnight.options[0].textContent = t("useMethodDefault");
+      customMidnight.options[1].textContent = t("standardMidnight");
+      customMidnight.options[2].textContent = t("jafari");
     }
 
     const reminderOffset = document.getElementById("reminder-offset");
