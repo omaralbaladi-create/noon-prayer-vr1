@@ -1,4 +1,8 @@
 (function () {
+  function lang() {
+    return window.I18N?.getLang?.() === "en" ? "en" : "ar";
+  }
+
   function pad(num) {
     return String(num).padStart(2, "0");
   }
@@ -8,8 +12,27 @@
     return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
   }
 
+  function formatTime12(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "--:--";
+    return new Intl.DateTimeFormat(lang() === "en" ? "en-US" : "ar-SA", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true
+    }).format(date);
+  }
+
   function formatDateKey(date) {
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  }
+
+  function formatGregorianDate(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+    return new Intl.DateTimeFormat(lang() === "en" ? "en-US" : "ar-SA", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric"
+    }).format(date);
   }
 
   function addMinutes(date, minutes) {
@@ -36,9 +59,19 @@
     return dirs[Math.round(deg / 45) % 8];
   }
 
-  function formatCurrency(value) {
+  function formatCurrency(value, currency = "SAR") {
     const n = Number(value || 0);
-    return `${n.toFixed(2)} SAR`;
+
+    try {
+      return new Intl.NumberFormat(lang() === "en" ? "en-US" : "ar-SA", {
+        style: "currency",
+        currency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(n);
+    } catch (_) {
+      return `${n.toFixed(2)} ${currency}`;
+    }
   }
 
   function downloadText(filename, text, mimeType) {
@@ -55,7 +88,7 @@
 
   function getHijriApprox(date) {
     try {
-      const locale = document.documentElement.lang === "en" ? "en-TN-u-ca-islamic" : "ar-TN-u-ca-islamic";
+      const locale = lang() === "en" ? "en-TN-u-ca-islamic" : "ar-TN-u-ca-islamic";
       return new Intl.DateTimeFormat(locale, {
         day: "numeric",
         month: "long",
@@ -94,7 +127,9 @@
   window.Utils = {
     pad,
     formatTime,
+    formatTime12,
     formatDateKey,
+    formatGregorianDate,
     addMinutes,
     cloneDate,
     setTime,
