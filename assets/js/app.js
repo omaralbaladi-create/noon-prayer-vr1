@@ -31,6 +31,24 @@
     return salahLabels[lang()][key] || key;
   }
 
+  function text(ar, en) {
+    return lang() === "ar" ? ar : en;
+  }
+
+  function showApiBanner(message) {
+    const banner = window.DOM.qs("api-banner");
+    if (!banner) return;
+    banner.textContent = message;
+    banner.classList.remove("hidden");
+  }
+
+  function hideApiBanner() {
+    const banner = window.DOM.qs("api-banner");
+    if (!banner) return;
+    banner.textContent = "";
+    banner.classList.add("hidden");
+  }
+
   function init() {
     window.StorageAPI.loadState();
     ensureDailyReset();
@@ -179,20 +197,23 @@
       toggleLocationModeFields();
 
       if (mode === "auto") {
+        hideApiBanner();
         detectLocation();
       } else if (mode === "preset") {
+        hideApiBanner();
         const presetSelect = window.DOM.qs("loc-preset");
         if (presetSelect && presetSelect.value) {
           applyPresetCity(presetSelect.value);
         }
       } else if (mode === "custom") {
-        applyCustomCoordinatesFromInputs();
+        applyCustomCoordinatesFromInputs(true, true);
       }
 
       persistAndRender();
     };
 
     window.DOM.qs("loc-preset").onchange = (e) => {
+      hideApiBanner();
       applyPresetCity(e.target.value);
       persistAndRender();
     };
@@ -203,14 +224,14 @@
     if (latInput) {
       latInput.oninput = () => {
         if (window.APP_STATE.location.mode === "custom") {
-          applyCustomCoordinatesFromInputs(false);
+          applyCustomCoordinatesFromInputs(false, false);
         }
       };
       latInput.onchange = () => {
         if (window.APP_STATE.location.mode !== "custom") {
           window.APP_STATE.location.mode = "custom";
         }
-        applyCustomCoordinatesFromInputs(true);
+        applyCustomCoordinatesFromInputs(true, true);
         persistAndRender();
       };
     }
@@ -218,14 +239,14 @@
     if (lngInput) {
       lngInput.oninput = () => {
         if (window.APP_STATE.location.mode === "custom") {
-          applyCustomCoordinatesFromInputs(false);
+          applyCustomCoordinatesFromInputs(false, false);
         }
       };
       lngInput.onchange = () => {
         if (window.APP_STATE.location.mode !== "custom") {
           window.APP_STATE.location.mode = "custom";
         }
-        applyCustomCoordinatesFromInputs(true);
+        applyCustomCoordinatesFromInputs(true, true);
         persistAndRender();
       };
     }
@@ -359,9 +380,9 @@
     window.addEventListener("beforeinstallprompt", (e) => {
       e.preventDefault();
       window.__deferredInstallPrompt = e;
-      window.DOM.setText("install-badge", lang() === "ar" ? "التثبيت متاح" : "Install available");
+      window.DOM.setText("install-badge", text("التثبيت متاح", "Install available"));
       window.DOM.show(window.DOM.qs("pwa-banner"));
-      window.DOM.setText("pwa-banner", lang() === "ar" ? "يمكنك تثبيت التطبيق على جهازك." : "You can install the app on your device.");
+      window.DOM.setText("pwa-banner", text("يمكنك تثبيت التطبيق على جهازك.", "You can install the app on your device."));
     });
   }
 
@@ -373,16 +394,70 @@
     window.APP_STATE.location.lng = city.lng;
   }
 
-  function applyCustomCoordinatesFromInputs(updateLabel = true) {
+  function validateCoordinates(lat, lng) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return {
+        valid: false,
+        message: text(
+          "يرجى إدخال خط العرض وخط الطول كأرقام صحيحة.",
+          "Please enter latitude and longitude as valid numbers."
+        )
+      };
+    }
+
+    if (lat < -90 || lat > 90) {
+      return {
+        valid: false,
+        message: text(
+          "خط العرض يجب أن يكون بين ‎-90 و 90.",
+          "Latitude must be between -90 and 90."
+        )
+      };
+    }
+
+    if (lng < -180 || lng > 180) {
+      return {
+        valid: false,
+        message: text(
+          "خط الطول يجب أن يكون بين ‎-180 و 180.",
+          "Longitude must be between -180 and 180."
+        )
+      };
+    }
+
+    return { valid: true, message: "" };
+  }
+
+  function applyCustomCoordinatesFromInputs(updateLabel = true, showValidationBanner = true) {
     const latInput = window.DOM.qs("loc-lat");
     const lngInput = window.DOM.qs("loc-lng");
-    if (!latInput || !lngInput) return;
+    if (!latInput || !lngInput) return false;
 
-    const lat = Number(latInput.value);
-    const lng = Number(lngInput.value);
+    const latRaw = latInput.value.trim();
+    const lngRaw = lngInput.value.trim();
 
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return;
+    if (!latRaw || !lngRaw) {
+      if (showValidationBanner) {
+        showApiBanner(
+          text(
+            "يرجى إدخال خط العرض وخط الطول.",
+            "Please enter both latitude and longitude."
+          )
+        );
+      }
+      return false;
+    }
+
+    const lat = Number(latRaw);
+    const lng = Number(lngRaw);
+
+    const validation = validateCoordinates(lat, lng);
+    if (!validation.valid) {
+      if (showValidationBanner) showApiBanner(validation.message);
+      return false;
+    }
+
+    hideApiBanner();
 
     window.APP_STATE.location.lat = lat;
     window.APP_STATE.location.lng = lng;
@@ -391,9 +466,11 @@
       if (window.APP_STATE.location.lookupCity) {
         reverseLookupCurrentLocation();
       } else {
-        window.APP_STATE.location.cityName = lang() === "ar" ? "موقع مخصص" : "Custom location";
+        window.APP_STATE.location.cityName = text("موقع مخصص", "Custom location");
       }
     }
+
+    return true;
   }
 
   async function reverseLookupCurrentLocation() {
@@ -462,6 +539,7 @@
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
+        hideApiBanner();
         window.APP_STATE.location.lat = pos.coords.latitude;
         window.APP_STATE.location.lng = pos.coords.longitude;
         window.APP_STATE.location.cityName = "GPS";
@@ -473,8 +551,12 @@
         persistAndRender();
       },
       () => {
-        window.DOM.show(window.DOM.qs("api-banner"));
-        window.DOM.setText("api-banner", lang() === "ar" ? "تعذر الوصول إلى GPS، تم الاحتفاظ بالموقع الحالي." : "Unable to access GPS. Current location was kept.");
+        showApiBanner(
+          text(
+            "تعذر الوصول إلى GPS، تم الاحتفاظ بالموقع الحالي.",
+            "Unable to access GPS. Current location was kept."
+          )
+        );
       }
     );
   }
@@ -486,7 +568,7 @@
 
     const status = window.DOM.qs("city-search-status");
     const results = window.DOM.qs("city-search-results");
-    status.textContent = lang() === "ar" ? "جارٍ البحث..." : "Searching...";
+    status.textContent = text("جارٍ البحث...", "Searching...");
     results.innerHTML = "";
 
     try {
@@ -497,14 +579,15 @@
       const data = await res.json();
 
       status.textContent = data.length
-        ? (lang() === "ar" ? "اختر نتيجة:" : "Choose a result:")
-        : (lang() === "ar" ? "لا توجد نتائج." : "No results.");
+        ? text("اختر نتيجة:", "Choose a result:")
+        : text("لا توجد نتائج.", "No results.");
 
       data.slice(0, 5).forEach((item) => {
         const btn = document.createElement("button");
         btn.className = "city-pill";
         btn.textContent = item.display_name;
         btn.onclick = () => {
+          hideApiBanner();
           window.APP_STATE.location.mode = "search";
           window.APP_STATE.location.cityName = item.display_name;
           window.APP_STATE.location.lat = Number(item.lat);
@@ -516,7 +599,7 @@
       });
     } catch (error) {
       console.error(error);
-      status.textContent = lang() === "ar" ? "حدث خطأ أثناء البحث." : "Search failed.";
+      status.textContent = text("حدث خطأ أثناء البحث.", "Search failed.");
     }
   }
 
@@ -544,15 +627,15 @@
 
   function renderLocationLabel() {
     const { cityName, lat, lng } = window.APP_STATE.location;
-    const safeName = cityName || (lang() === "ar" ? "موقع غير محدد" : "Unknown location");
+    const safeName = cityName || text("موقع غير محدد", "Unknown location");
     window.DOM.setText("location-label", `${safeName} • ${Number(lat).toFixed(2)}, ${Number(lng).toFixed(2)}`);
   }
 
   function renderBadges() {
     window.DOM.setText("version-badge", `v${window.APP_CONFIG.version}`);
-    window.DOM.setText("ramadan-badge", window.APP_STATE.settings.ramadanMode ? (lang() === "ar" ? "وضع رمضان" : "Ramadan mode") : (lang() === "ar" ? "الوضع العادي" : "Normal mode"));
-    window.DOM.setText("notif-badge", window.APP_STATE.settings.notifications.enabled ? (lang() === "ar" ? "الإشعارات مفعلة" : "Notifications on") : (lang() === "ar" ? "الإشعارات متوقفة" : "Notifications off"));
-    window.DOM.setText("audio-badge", window.APP_STATE.settings.notifications.audioEnabled ? (lang() === "ar" ? "صوت الأذان مفعّل" : "Adhan audio on") : (lang() === "ar" ? "صوت الأذان متوقف" : "Adhan audio off"));
+    window.DOM.setText("ramadan-badge", window.APP_STATE.settings.ramadanMode ? text("وضع رمضان", "Ramadan mode") : text("الوضع العادي", "Normal mode"));
+    window.DOM.setText("notif-badge", window.APP_STATE.settings.notifications.enabled ? text("الإشعارات مفعلة", "Notifications on") : text("الإشعارات متوقفة", "Notifications off"));
+    window.DOM.setText("audio-badge", window.APP_STATE.settings.notifications.audioEnabled ? text("صوت الأذان مفعّل", "Adhan audio on") : text("صوت الأذان متوقف", "Adhan audio off"));
   }
 
   function renderSalahTracker() {
@@ -582,7 +665,7 @@
     const pct = window.Utils.percent(done, 5);
 
     window.DOM.qs("salah-progress-bar").style.width = `${pct}%`;
-    window.DOM.setText("salah-progress-text", lang() === "ar" ? `${done} / 5 مكتملة` : `${done} / 5 completed`);
+    window.DOM.setText("salah-progress-text", text(`${done} / 5 مكتملة`, `${done} / 5 completed`));
   }
 
   function saveTodaySalahToHistory() {
@@ -658,7 +741,7 @@
         <div class="azkar-arabic">${item.arabic}</div>
         <div class="actions">
           <span>${count} / ${item.repeat}</span>
-          <button class="btn-secondary">${done ? (lang() === "ar" ? "مكتمل" : "Done") : (lang() === "ar" ? "عدّ" : "Count")}</button>
+          <button class="btn-secondary">${done ? text("مكتمل", "Done") : text("عدّ", "Count")}</button>
         </div>
       `;
 
@@ -684,8 +767,8 @@
     window.DOM.setText("dhikr-title", lang() === "ar" ? current.titleAr : current.titleEn);
     window.DOM.setText("dhikr-ar", current.arabic);
     window.DOM.setText("tasbih-display", String(count));
-    window.DOM.setText("tasbih-target", lang() === "ar" ? `الهدف: ${current.target}` : `Target: ${current.target}`);
-    window.DOM.setText("tasbih-msg", count >= current.target ? (lang() === "ar" ? "تم بلوغ الهدف" : "Target reached") : "");
+    window.DOM.setText("tasbih-target", text(`الهدف: ${current.target}`, `Target: ${current.target}`));
+    window.DOM.setText("tasbih-msg", count >= current.target ? text("تم بلوغ الهدف", "Target reached") : "");
   }
 
   function incrementTasbih() {
@@ -753,8 +836,8 @@
     const due = eligible ? wealth * 0.025 : 0;
 
     window.DOM.setText("zakat-nisab-label", basis === "gold"
-      ? (lang() === "ar" ? "النصاب (85 غرام ذهب)" : "Nisab (85g gold)")
-      : (lang() === "ar" ? "النصاب (595 غرام فضة)" : "Nisab (595g silver)")
+      ? text("النصاب (85 غرام ذهب)", "Nisab (85g gold)")
+      : text("النصاب (595 غرام فضة)", "Nisab (595g silver)")
     );
     window.DOM.setText("zakat-nisab-val", window.Utils.formatCurrency(nisab));
     window.DOM.setText("zakat-total", window.Utils.formatCurrency(wealth));
@@ -762,10 +845,10 @@
     window.DOM.setText(
       "zakat-status-msg",
       !hawl
-        ? (lang() === "ar" ? "الزكاة لا تُحسب حتى يمر حول قمري كامل." : "Zakat is not due until one lunar year passes.")
+        ? text("الزكاة لا تُحسب حتى يمر حول قمري كامل.", "Zakat is not due until one lunar year passes.")
         : wealth < nisab
-          ? (lang() === "ar" ? "المبلغ أقل من النصاب." : "Amount is below nisab.")
-          : (lang() === "ar" ? "بلغ المال النصاب وتحققت الشروط الأساسية." : "Wealth meets nisab and basic conditions.")
+          ? text("المبلغ أقل من النصاب.", "Amount is below nisab.")
+          : text("بلغ المال النصاب وتحققت الشروط الأساسية.", "Wealth meets nisab and basic conditions.")
     );
   }
 
@@ -799,29 +882,29 @@
   }
 
   function exportBackup() {
-    const text = window.StorageAPI.exportBackup();
-    window.DOM.qs("backup-textarea").value = text;
-    window.Utils.downloadText("noor-prayer-backup.json", text, "application/json");
+    const textData = window.StorageAPI.exportBackup();
+    window.DOM.qs("backup-textarea").value = textData;
+    window.Utils.downloadText("noor-prayer-backup.json", textData, "application/json");
   }
 
   async function copyBackup() {
-    const text = window.StorageAPI.exportBackup();
-    window.DOM.qs("backup-textarea").value = text;
+    const textData = window.StorageAPI.exportBackup();
+    window.DOM.qs("backup-textarea").value = textData;
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(textData);
       window.DOM.show(window.DOM.qs("backup-banner"));
-      window.DOM.setText("backup-banner", lang() === "ar" ? "تم نسخ النسخة الاحتياطية." : "Backup copied.");
+      window.DOM.setText("backup-banner", text("تم نسخ النسخة الاحتياطية.", "Backup copied."));
     } catch (_) {}
   }
 
   function importBackup() {
     try {
-      const text = window.DOM.qs("backup-textarea").value;
-      window.StorageAPI.importBackup(text);
+      const backupText = window.DOM.qs("backup-textarea").value;
+      window.StorageAPI.importBackup(backupText);
       applyStateToUI();
       renderAll();
       window.DOM.show(window.DOM.qs("backup-banner"));
-      window.DOM.setText("backup-banner", lang() === "ar" ? "تم استيراد النسخة الاحتياطية." : "Backup imported.");
+      window.DOM.setText("backup-banner", text("تم استيراد النسخة الاحتياطية.", "Backup imported."));
     } catch (error) {
       console.error(error);
     }
@@ -841,9 +924,10 @@
       banner.classList.add("hidden");
     } else {
       banner.classList.remove("hidden");
-      banner.textContent = lang() === "ar"
-        ? "أنت غير متصل الآن. سيستمر التطبيق بالعمل بقدر الإمكان دون إنترنت."
-        : "You are offline now. The app will keep working as much as possible.";
+      banner.textContent = text(
+        "أنت غير متصل الآن. سيستمر التطبيق بالعمل بقدر الإمكان دون إنترنت.",
+        "You are offline now. The app will keep working as much as possible."
+      );
     }
   }
 
