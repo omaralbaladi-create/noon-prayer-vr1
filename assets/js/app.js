@@ -24,11 +24,11 @@
   ];
 
   function lang() {
-    return window.I18N.getLang();
+    return window.I18N?.getLang?.() === "en" ? "en" : "ar";
   }
 
   function t(key) {
-    return window.I18N.t(key);
+    return window.I18N?.t ? window.I18N.t(key) : key;
   }
 
   function tSalah(key) {
@@ -60,8 +60,13 @@
       navigator.serviceWorker.register("./service-worker.js").catch(console.error);
     }
 
-    window.Qibla.requestIOSPermissionIfNeeded();
-    window.Qibla.startCompass();
+    if (window.Qibla?.requestIOSPermissionIfNeeded) {
+      window.Qibla.requestIOSPermissionIfNeeded();
+    }
+    if (window.Qibla?.startCompass) {
+      window.Qibla.startCompass();
+    }
+
     handleOnlineStatus();
   }
 
@@ -91,44 +96,40 @@
     document.body.setAttribute("data-theme", window.APP_STATE.settings.theme);
     window.I18N.applyLanguage();
 
-    window.DOM.qs("lang-select").value = window.APP_STATE.settings.lang;
-    window.DOM.qs("theme-select").value = window.APP_STATE.settings.theme;
-    window.DOM.qs("loc-mode").value = window.APP_STATE.location.mode;
-    window.DOM.qs("lookup-city").checked = window.APP_STATE.location.lookupCity;
-    window.DOM.qs("calc-method").value = window.APP_STATE.settings.calcMethod;
-    window.DOM.qs("asr-method").value = window.APP_STATE.settings.asrMethod;
-    window.DOM.qs("ramadan-mode").checked = window.APP_STATE.settings.ramadanMode;
-    window.DOM.qs("debug-enabled").checked = window.APP_STATE.settings.debugEnabled;
+    window.DOM.setValue("lang-select", window.APP_STATE.settings.lang);
+    window.DOM.setValue("theme-select", window.APP_STATE.settings.theme);
+    window.DOM.setValue("loc-mode", window.APP_STATE.location.mode);
+    window.DOM.setChecked("lookup-city", window.APP_STATE.location.lookupCity);
+    window.DOM.setValue("calc-method", window.APP_STATE.settings.calcMethod);
+    window.DOM.setValue("asr-method", window.APP_STATE.settings.asrMethod);
+    window.DOM.setChecked("ramadan-mode", window.APP_STATE.settings.ramadanMode);
+    window.DOM.setChecked("debug-enabled", window.APP_STATE.settings.debugEnabled);
 
-    const latInput = window.DOM.qs("loc-lat");
-    const lngInput = window.DOM.qs("loc-lng");
-    if (latInput) latInput.value = window.APP_STATE.location.lat ?? "";
-    if (lngInput) lngInput.value = window.APP_STATE.location.lng ?? "";
+    window.DOM.setValue("loc-lat", window.APP_STATE.location.lat ?? "");
+    window.DOM.setValue("loc-lng", window.APP_STATE.location.lng ?? "");
 
     const zakat = window.APP_STATE.settings.zakat;
-    window.DOM.qs("zakat-basis").value = zakat.basis;
-    window.DOM.qs("zakat-gold-price").value = zakat.goldPrice;
-    window.DOM.qs("zakat-silver-price").value = zakat.silverPrice;
+    window.DOM.setValue("zakat-basis", zakat.basis);
+    window.DOM.setValue("zakat-gold-price", zakat.goldPrice);
+    window.DOM.setValue("zakat-silver-price", zakat.silverPrice);
 
     const notif = window.APP_STATE.settings.notifications;
-    window.DOM.qs("notif-enabled").checked = notif.enabled;
-    window.DOM.qs("audio-enabled").checked = notif.audioEnabled;
-    window.DOM.qs("adhan-audio-select").value = notif.adhanAudio;
-    window.DOM.qs("reminder-offset").value = String(notif.reminderOffset);
-    window.DOM.qs("notify-fajr").checked = notif.prayers.fajr;
-    window.DOM.qs("notify-dhuhr").checked = notif.prayers.dhuhr;
-    window.DOM.qs("notify-asr").checked = notif.prayers.asr;
-    window.DOM.qs("notify-maghrib").checked = notif.prayers.maghrib;
-    window.DOM.qs("notify-isha").checked = notif.prayers.isha;
+    window.DOM.setChecked("notif-enabled", notif.enabled);
+    window.DOM.setChecked("audio-enabled", notif.audioEnabled);
+    window.DOM.setValue("adhan-audio-select", notif.adhanAudio);
+    window.DOM.setValue("reminder-offset", String(notif.reminderOffset));
+    window.DOM.setChecked("notify-fajr", notif.prayers.fajr);
+    window.DOM.setChecked("notify-dhuhr", notif.prayers.dhuhr);
+    window.DOM.setChecked("notify-asr", notif.prayers.asr);
+    window.DOM.setChecked("notify-maghrib", notif.prayers.maghrib);
+    window.DOM.setChecked("notify-isha", notif.prayers.isha);
 
     Object.entries(window.APP_STATE.settings.offsets).forEach(([key, value]) => {
-      const el = window.DOM.qs(`offset-${key}`);
-      if (el) el.value = value;
+      window.DOM.setValue(`offset-${key}`, value);
     });
 
     Object.entries(window.APP_STATE.settings.iqamah).forEach(([key, value]) => {
-      const el = window.DOM.qs(`iqamah-${key}`);
-      if (el) el.value = value;
+      window.DOM.setValue(`iqamah-${key}`, value);
     });
 
     setupPresetCities();
@@ -137,17 +138,22 @@
 
   function setupPresetCities() {
     const select = window.DOM.qs("loc-preset");
+    if (!select) return;
+
     select.innerHTML = "";
+
     window.APP_CONFIG.presetCities.forEach((city) => {
       const opt = document.createElement("option");
       opt.value = city.id;
       opt.textContent = lang() === "ar" ? city.nameAr : city.nameEn;
+
       if (
-        Math.abs(city.lat - window.APP_STATE.location.lat) < 0.0001 &&
-        Math.abs(city.lng - window.APP_STATE.location.lng) < 0.0001
+        Math.abs(city.lat - Number(window.APP_STATE.location.lat)) < 0.0001 &&
+        Math.abs(city.lng - Number(window.APP_STATE.location.lng)) < 0.0001
       ) {
         opt.selected = true;
       }
+
       select.appendChild(opt);
     });
   }
@@ -161,37 +167,38 @@
       btn.addEventListener("click", () => switchAzkarTab(btn.dataset.azkar));
     });
 
-    window.DOM.qs("open-settings-btn").onclick = () => window.DOM.openModal("settings-modal");
-    window.DOM.qs("close-settings-btn").onclick = () => window.DOM.closeModal("settings-modal");
-    window.DOM.qs("overlay").onclick = () => {
+    window.DOM.on("open-settings-btn", "click", () => window.DOM.openModal("settings-modal"));
+    window.DOM.on("close-settings-btn", "click", () => window.DOM.closeModal("settings-modal"));
+
+    window.DOM.on("overlay", "click", () => {
       window.DOM.closeModal("settings-modal");
       window.DOM.closeModal("confirm-modal");
-    };
+    });
 
-    window.DOM.qs("lang-toggle-btn").onclick = () => {
+    window.DOM.on("lang-toggle-btn", "click", () => {
       window.APP_STATE.settings.lang = window.APP_STATE.settings.lang === "ar" ? "en" : "ar";
       persistAndRender();
-    };
+    });
 
-    window.DOM.qs("theme-cycle-btn").onclick = () => {
+    window.DOM.on("theme-cycle-btn", "click", () => {
       const themes = ["emerald", "midnight", "desert", "sunset"];
       const current = window.APP_STATE.settings.theme;
       const nextIndex = (themes.indexOf(current) + 1) % themes.length;
       window.APP_STATE.settings.theme = themes[nextIndex];
       persistAndRender();
-    };
+    });
 
-    window.DOM.qs("lang-select").onchange = (e) => {
+    window.DOM.on("lang-select", "change", (e) => {
       window.APP_STATE.settings.lang = e.target.value;
       persistAndRender();
-    };
+    });
 
-    window.DOM.qs("theme-select").onchange = (e) => {
+    window.DOM.on("theme-select", "change", (e) => {
       window.APP_STATE.settings.theme = e.target.value;
       persistAndRender();
-    };
+    });
 
-    window.DOM.qs("loc-mode").onchange = (e) => {
+    window.DOM.on("loc-mode", "change", (e) => {
       const mode = e.target.value;
       window.APP_STATE.location.mode = mode;
       toggleLocationModeFields();
@@ -210,13 +217,13 @@
       }
 
       persistAndRender();
-    };
+    });
 
-    window.DOM.qs("loc-preset").onchange = (e) => {
+    window.DOM.on("loc-preset", "change", (e) => {
       hideApiBanner();
       applyPresetCity(e.target.value);
       persistAndRender();
-    };
+    });
 
     const latInput = window.DOM.qs("loc-lat");
     const lngInput = window.DOM.qs("loc-lng");
@@ -251,65 +258,63 @@
       };
     }
 
-    window.DOM.qs("city-search-btn").onclick = searchCity;
+    window.DOM.on("city-search-btn", "click", searchCity);
 
-    window.DOM.qs("lookup-city").onchange = (e) => {
+    window.DOM.on("lookup-city", "change", (e) => {
       window.APP_STATE.location.lookupCity = e.target.checked;
       if (e.target.checked && window.APP_STATE.location.mode === "custom") {
         reverseLookupCurrentLocation();
       }
       persistAndRender();
-    };
+    });
 
-    window.DOM.qs("calc-method").onchange = (e) => {
+    window.DOM.on("calc-method", "change", (e) => {
       window.APP_STATE.settings.calcMethod = e.target.value;
       persistAndRender();
-    };
+    });
 
-    window.DOM.qs("asr-method").onchange = (e) => {
+    window.DOM.on("asr-method", "change", (e) => {
       window.APP_STATE.settings.asrMethod = e.target.value;
       persistAndRender();
-    };
+    });
 
-    window.DOM.qs("ramadan-mode").onchange = (e) => {
+    window.DOM.on("ramadan-mode", "change", (e) => {
       window.APP_STATE.settings.ramadanMode = e.target.checked;
       persistAndRender();
-    };
+    });
 
     ["fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha"].forEach((key) => {
-      const el = window.DOM.qs(`offset-${key}`);
-      el.onchange = (e) => {
+      window.DOM.on(`offset-${key}`, "change", (e) => {
         window.APP_STATE.settings.offsets[key] = Number(e.target.value || 0);
         persistAndRender();
-      };
+      });
     });
 
     ["fajr", "dhuhr", "asr", "maghrib", "isha"].forEach((key) => {
-      const el = window.DOM.qs(`iqamah-${key}`);
-      el.onchange = (e) => {
+      window.DOM.on(`iqamah-${key}`, "change", (e) => {
         window.APP_STATE.settings.iqamah[key] = e.target.value.trim();
         persistAndRender();
-      };
+      });
     });
 
-    window.DOM.qs("save-salah-day-btn").onclick = saveTodaySalahToHistory;
-    window.DOM.qs("reset-salah-btn").onclick = resetTodaySalah;
-    window.DOM.qs("clear-history-btn").onclick = clearHistory;
-    window.DOM.qs("reset-azkar-btn").onclick = resetAzkarToday;
-    window.DOM.qs("tasbih-increment-btn").onclick = incrementTasbih;
-    window.DOM.qs("tasbih-reset-btn").onclick = resetTasbih;
-    window.DOM.qs("reset-khatm-btn").onclick = resetQuranKhatm;
-    window.DOM.qs("export-csv-btn").onclick = window.Prayer.exportMonthCSV;
+    window.DOM.on("save-salah-day-btn", "click", saveTodaySalahToHistory);
+    window.DOM.on("reset-salah-btn", "click", resetTodaySalah);
+    window.DOM.on("clear-history-btn", "click", clearHistory);
+    window.DOM.on("reset-azkar-btn", "click", resetAzkarToday);
+    window.DOM.on("tasbih-increment-btn", "click", incrementTasbih);
+    window.DOM.on("tasbih-reset-btn", "click", resetTasbih);
+    window.DOM.on("reset-khatm-btn", "click", resetQuranKhatm);
+    window.DOM.on("export-csv-btn", "click", () => window.Prayer?.exportMonthCSV?.());
 
-    window.DOM.qs("month-prev-btn").onclick = () => {
+    window.DOM.on("month-prev-btn", "click", () => {
       window.APP_STATE.ui.currentMonthOffset -= 1;
       persistAndRender();
-    };
+    });
 
-    window.DOM.qs("month-next-btn").onclick = () => {
+    window.DOM.on("month-next-btn", "click", () => {
       window.APP_STATE.ui.currentMonthOffset += 1;
       persistAndRender();
-    };
+    });
 
     document.querySelectorAll(".dhikr-btn").forEach((btn) => {
       btn.onclick = () => {
@@ -319,69 +324,74 @@
       };
     });
 
-    window.DOM.qs("zakat-basis").onchange = (e) => {
+    window.DOM.on("zakat-basis", "change", (e) => {
       window.APP_STATE.settings.zakat.basis = e.target.value;
       persistAndRender();
-    };
+    });
 
-    window.DOM.qs("zakat-gold-price").oninput = (e) => {
+    window.DOM.on("zakat-gold-price", "input", (e) => {
       window.APP_STATE.settings.zakat.goldPrice = e.target.value;
       persistAndRender();
-    };
+    });
 
-    window.DOM.qs("zakat-silver-price").oninput = (e) => {
+    window.DOM.on("zakat-silver-price", "input", (e) => {
       window.APP_STATE.settings.zakat.silverPrice = e.target.value;
       persistAndRender();
-    };
+    });
 
     ["zakat-cash", "zakat-gold", "zakat-stocks", "zakat-debt", "zakat-hawl"].forEach((id) => {
-      window.DOM.qs(id).oninput = renderZakat;
-      window.DOM.qs(id).onchange = renderZakat;
+      window.DOM.on(id, "input", renderZakat);
+      window.DOM.on(id, "change", renderZakat);
     });
 
-    window.DOM.qs("notif-permission-btn").onclick = requestNotificationPermission;
-    window.DOM.qs("notif-enabled").onchange = (e) => {
+    window.DOM.on("notif-permission-btn", "click", requestNotificationPermission);
+
+    window.DOM.on("notif-enabled", "change", (e) => {
       window.APP_STATE.settings.notifications.enabled = e.target.checked;
       persistAndRender();
-    };
-    window.DOM.qs("audio-enabled").onchange = (e) => {
-      window.APP_STATE.settings.notifications.audioEnabled = e.target.checked;
-      persistAndRender();
-    };
-    window.DOM.qs("adhan-audio-select").onchange = (e) => {
-      window.APP_STATE.settings.notifications.adhanAudio = e.target.value;
-      persistAndRender();
-    };
-    window.DOM.qs("reminder-offset").onchange = (e) => {
-      window.APP_STATE.settings.notifications.reminderOffset = Number(e.target.value);
-      persistAndRender();
-    };
-
-    ["fajr", "dhuhr", "asr", "maghrib", "isha"].forEach((key) => {
-      const el = window.DOM.qs(`notify-${key}`);
-      el.onchange = (e) => {
-        window.APP_STATE.settings.notifications.prayers[key] = e.target.checked;
-        persistAndRender();
-      };
     });
 
-    window.DOM.qs("export-backup-btn").onclick = exportBackup;
-    window.DOM.qs("copy-backup-btn").onclick = copyBackup;
-    window.DOM.qs("import-backup-btn").onclick = importBackup;
+    window.DOM.on("audio-enabled", "change", (e) => {
+      window.APP_STATE.settings.notifications.audioEnabled = e.target.checked;
+      persistAndRender();
+    });
 
-    window.DOM.qs("install-app-btn").onclick = triggerInstallPrompt;
-    window.DOM.qs("debug-enabled").onchange = (e) => {
+    window.DOM.on("adhan-audio-select", "change", (e) => {
+      window.APP_STATE.settings.notifications.adhanAudio = e.target.value;
+      persistAndRender();
+    });
+
+    window.DOM.on("reminder-offset", "change", (e) => {
+      window.APP_STATE.settings.notifications.reminderOffset = Number(e.target.value);
+      persistAndRender();
+    });
+
+    ["fajr", "dhuhr", "asr", "maghrib", "isha"].forEach((key) => {
+      window.DOM.on(`notify-${key}`, "change", (e) => {
+        window.APP_STATE.settings.notifications.prayers[key] = e.target.checked;
+        persistAndRender();
+      });
+    });
+
+    window.DOM.on("export-backup-btn", "click", exportBackup);
+    window.DOM.on("copy-backup-btn", "click", copyBackup);
+    window.DOM.on("import-backup-btn", "click", importBackup);
+
+    window.DOM.on("install-app-btn", "click", triggerInstallPrompt);
+
+    window.DOM.on("debug-enabled", "change", (e) => {
       window.APP_STATE.settings.debugEnabled = e.target.checked;
       persistAndRender();
-    };
+    });
 
     window.addEventListener("online", handleOnlineStatus);
     window.addEventListener("offline", handleOnlineStatus);
+
     window.addEventListener("beforeinstallprompt", (e) => {
       e.preventDefault();
       window.__deferredInstallPrompt = e;
       window.DOM.setText("install-badge", t("installAvailable"));
-      window.DOM.show(window.DOM.qs("pwa-banner"));
+      window.DOM.show("pwa-banner");
       window.DOM.setText("pwa-banner", t("pwaInstallText"));
     });
   }
@@ -389,6 +399,7 @@
   function applyPresetCity(cityId) {
     const city = window.APP_CONFIG.presetCities.find((c) => c.id === cityId);
     if (!city) return;
+
     window.APP_STATE.location.cityName = lang() === "ar" ? city.nameAr : city.nameEn;
     window.APP_STATE.location.lat = city.lat;
     window.APP_STATE.location.lng = city.lng;
@@ -408,7 +419,7 @@
       return {
         valid: false,
         message: lang() === "ar"
-          ? "خط العرض يجب أن يكون بين ‎-90 و 90."
+          ? "خط العرض يجب أن يكون بين -90 و 90."
           : "Latitude must be between -90 and 90."
       };
     }
@@ -417,7 +428,7 @@
       return {
         valid: false,
         message: lang() === "ar"
-          ? "خط الطول يجب أن يكون بين ‎-180 و 180."
+          ? "خط الطول يجب أن يكون بين -180 و 180."
           : "Longitude must be between -180 and 180."
       };
     }
@@ -496,19 +507,26 @@
 
   function switchTab(tabName) {
     window.APP_STATE.ui.activeTab = tabName;
+
     document.querySelectorAll("#main-nav-tabs .tab-btn").forEach((b) => {
       b.classList.toggle("active", b.dataset.tab === tabName);
     });
+
     document.querySelectorAll(".tab-content").forEach((tab) => tab.classList.add("hidden"));
-    window.DOM.qs(`tab-${tabName}`).classList.remove("hidden");
+
+    const activeTab = window.DOM.qs(`tab-${tabName}`);
+    if (activeTab) activeTab.classList.remove("hidden");
+
     window.StorageAPI.saveState();
   }
 
   function switchAzkarTab(tabName) {
     window.APP_STATE.ui.activeAzkarTab = tabName;
+
     document.querySelectorAll("#azkar-sub-tabs .tab-btn").forEach((b) => {
       b.classList.toggle("active", b.dataset.azkar === tabName);
     });
+
     renderAzkar();
     window.StorageAPI.saveState();
   }
@@ -519,17 +537,18 @@
     const custom = window.DOM.qs("loc-custom-group");
     const search = window.DOM.qs("loc-search-group");
 
-    preset.classList.add("hidden");
-    custom.classList.add("hidden");
-    search.classList.add("hidden");
+    if (preset) preset.classList.add("hidden");
+    if (custom) custom.classList.add("hidden");
+    if (search) search.classList.add("hidden");
 
-    if (mode === "preset") preset.classList.remove("hidden");
-    if (mode === "custom") custom.classList.remove("hidden");
-    if (mode === "search") search.classList.remove("hidden");
+    if (mode === "preset" && preset) preset.classList.remove("hidden");
+    if (mode === "custom" && custom) custom.classList.remove("hidden");
+    if (mode === "search" && search) search.classList.remove("hidden");
   }
 
   function detectLocation() {
     if (!navigator.geolocation) return;
+
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         hideApiBanner();
@@ -553,13 +572,14 @@
 
   async function searchCity() {
     const input = window.DOM.qs("city-search-input");
-    const query = input.value.trim();
+    const query = input?.value?.trim();
     if (!query) return;
 
     const status = window.DOM.qs("city-search-status");
     const results = window.DOM.qs("city-search-results");
-    status.textContent = t("searching");
-    results.innerHTML = "";
+
+    if (status) status.textContent = t("searching");
+    if (results) results.innerHTML = "";
 
     try {
       const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`;
@@ -568,7 +588,7 @@
       });
       const data = await res.json();
 
-      status.textContent = data.length ? t("chooseResult") : t("noResults");
+      if (status) status.textContent = data.length ? t("chooseResult") : t("noResults");
 
       data.slice(0, 5).forEach((item) => {
         const btn = document.createElement("button");
@@ -583,11 +603,11 @@
           addRecentCity(item.display_name);
           persistAndRender();
         };
-        results.appendChild(btn);
+        results?.appendChild(btn);
       });
     } catch (error) {
       console.error(error);
-      status.textContent = t("searchFailed");
+      if (status) status.textContent = t("searchFailed");
     }
   }
 
@@ -600,8 +620,8 @@
   function renderAll() {
     renderLocationLabel();
     renderBadges();
-    window.Prayer.renderTodayPrayerList();
-    window.Prayer.renderMonthTable();
+    window.Prayer?.renderTodayPrayerList?.();
+    window.Prayer?.renderMonthTable?.();
     renderSalahTracker();
     renderHistory();
     renderAzkar();
@@ -618,23 +638,31 @@
     const safeName = cityName || t("unknownLocation");
     const latText = Number.isFinite(Number(lat)) ? Number(lat).toFixed(2) : "--";
     const lngText = Number.isFinite(Number(lng)) ? Number(lng).toFixed(2) : "--";
-    const label = `${safeName} • ${latText}, ${lngText}`;
-    const el = window.DOM.qs("location-label");
-    el.textContent = label;
-    el.dataset.locked = "true";
+    window.DOM.setText("location-label", `${safeName} • ${latText}, ${lngText}`);
   }
 
   function renderBadges() {
     window.DOM.setText("version-badge", `v${window.APP_CONFIG.version}`);
     window.DOM.setText("install-badge", t("installReady"));
-    window.DOM.setText("ramadan-badge", window.APP_STATE.settings.ramadanMode ? t("ramadanModeBadge") : t("normalMode"));
-    window.DOM.setText("notif-badge", window.APP_STATE.settings.notifications.enabled ? t("notificationsOn") : t("notificationsOff"));
-    window.DOM.setText("audio-badge", window.APP_STATE.settings.notifications.audioEnabled ? t("adhanAudioOn") : t("adhanAudioOff"));
+    window.DOM.setText(
+      "ramadan-badge",
+      window.APP_STATE.settings.ramadanMode ? t("ramadanModeBadge") : t("normalMode")
+    );
+    window.DOM.setText(
+      "notif-badge",
+      window.APP_STATE.settings.notifications.enabled ? t("notificationsOn") : t("notificationsOff")
+    );
+    window.DOM.setText(
+      "audio-badge",
+      window.APP_STATE.settings.notifications.audioEnabled ? t("adhanAudioOn") : t("adhanAudioOff")
+    );
     window.DOM.setText("lang-badge", lang().toUpperCase());
   }
 
   function renderSalahTracker() {
     const list = window.DOM.qs("salah-list");
+    if (!list) return;
+
     list.innerHTML = "";
 
     salahKeys.forEach((key) => {
@@ -659,7 +687,9 @@
     const done = salahKeys.filter((k) => window.APP_STATE.trackers.salahToday[k]).length;
     const pct = window.Utils.percent(done, 5);
 
-    window.DOM.qs("salah-progress-bar").style.width = `${pct}%`;
+    const bar = window.DOM.qs("salah-progress-bar");
+    if (bar) bar.style.width = `${pct}%`;
+
     window.DOM.setText("salah-progress-text", lang() === "ar" ? `${done} / 5 مكتملة` : `${done} / 5 completed`);
   }
 
@@ -694,6 +724,8 @@
   function renderHistory() {
     const history = window.APP_STATE.trackers.salahHistory || [];
     const list = window.DOM.qs("history-list");
+    if (!list) return;
+
     list.innerHTML = "";
 
     let perfect = 0;
@@ -715,6 +747,7 @@
 
     window.DOM.setText("history-days-stat", String(history.length));
     window.DOM.setText("history-perfect-stat", String(perfect));
+
     const avg = history.length ? Math.round((totalCompletion / (history.length * 5)) * 100) : 0;
     window.DOM.setText("history-total-stat", `${avg}%`);
   }
@@ -723,6 +756,8 @@
     const tab = window.APP_STATE.ui.activeAzkarTab || "morning";
     const list = window.AZKAR_DATA[tab] || [];
     const container = window.DOM.qs("azkar-container");
+    if (!container) return;
+
     container.innerHTML = "";
 
     list.forEach((item) => {
@@ -732,7 +767,7 @@
       const card = document.createElement("div");
       card.className = "azkar-card";
       card.innerHTML = `
-        <h4>${item.title}</h4>
+        <h4>${lang() === "ar" ? (item.titleAr || item.title) : (item.titleEn || item.title)}</h4>
         <div class="azkar-arabic">${item.arabic}</div>
         <div class="actions">
           <span>${count} / ${item.repeat}</span>
@@ -757,7 +792,7 @@
 
   function renderTasbih() {
     const { index, count } = window.APP_STATE.trackers.tasbih;
-    const current = dhikrOptions[index];
+    const current = dhikrOptions[index] || dhikrOptions[0];
 
     window.DOM.setText("dhikr-title", lang() === "ar" ? current.titleAr : current.titleEn);
     window.DOM.setText("dhikr-ar", current.arabic);
@@ -779,6 +814,8 @@
 
   function renderQuran() {
     const grid = window.DOM.qs("juz-grid");
+    if (!grid) return;
+
     grid.innerHTML = "";
 
     for (let i = 1; i <= 30; i++) {
@@ -801,7 +838,10 @@
 
     const doneCount = window.APP_STATE.trackers.quranDone.length;
     const pct = window.Utils.percent(doneCount, 30);
-    window.DOM.qs("quran-progress-bar").style.width = `${pct}%`;
+
+    const bar = window.DOM.qs("quran-progress-bar");
+    if (bar) bar.style.width = `${pct}%`;
+
     window.DOM.setText(
       "quran-progress-text",
       lang() === "ar"
@@ -816,14 +856,14 @@
   }
 
   function renderZakat() {
-    const basis = window.DOM.qs("zakat-basis").value;
-    const goldPrice = Number(window.DOM.qs("zakat-gold-price").value || 0);
-    const silverPrice = Number(window.DOM.qs("zakat-silver-price").value || 0);
-    const cash = Number(window.DOM.qs("zakat-cash").value || 0);
-    const gold = Number(window.DOM.qs("zakat-gold").value || 0);
-    const stocks = Number(window.DOM.qs("zakat-stocks").value || 0);
-    const debt = Number(window.DOM.qs("zakat-debt").value || 0);
-    const hawl = window.DOM.qs("zakat-hawl").checked;
+    const basis = window.DOM.qs("zakat-basis")?.value || "gold";
+    const goldPrice = Number(window.DOM.qs("zakat-gold-price")?.value || 0);
+    const silverPrice = Number(window.DOM.qs("zakat-silver-price")?.value || 0);
+    const cash = Number(window.DOM.qs("zakat-cash")?.value || 0);
+    const gold = Number(window.DOM.qs("zakat-gold")?.value || 0);
+    const stocks = Number(window.DOM.qs("zakat-stocks")?.value || 0);
+    const debt = Number(window.DOM.qs("zakat-debt")?.value || 0);
+    const hawl = !!window.DOM.qs("zakat-hawl")?.checked;
 
     const wealth = Math.max(0, cash + gold + stocks - debt);
     const nisab = basis === "gold" ? goldPrice * 85 : silverPrice * 595;
@@ -836,9 +876,11 @@
         ? (lang() === "ar" ? "النصاب (85 غرام ذهب)" : "Nisab (85g gold)")
         : (lang() === "ar" ? "النصاب (595 غرام فضة)" : "Nisab (595g silver)")
     );
+
     window.DOM.setText("zakat-nisab-val", window.Utils.formatCurrency(nisab));
     window.DOM.setText("zakat-total", window.Utils.formatCurrency(wealth));
     window.DOM.setText("zakat-due", window.Utils.formatCurrency(due));
+
     window.DOM.setText(
       "zakat-status-msg",
       !hawl
@@ -852,55 +894,60 @@
   function renderRecentAndFavorites() {
     const recentBox = window.DOM.qs("recent-cities");
     const favBox = window.DOM.qs("favorite-cities");
-    recentBox.innerHTML = "";
-    favBox.innerHTML = "";
+
+    if (recentBox) recentBox.innerHTML = "";
+    if (favBox) favBox.innerHTML = "";
 
     window.APP_STATE.cityData.recent.forEach((name) => {
       const btn = document.createElement("button");
       btn.className = "city-pill";
       btn.textContent = name;
-      recentBox.appendChild(btn);
+      if (recentBox) recentBox.appendChild(btn);
     });
 
     window.APP_STATE.cityData.favorites.forEach((name) => {
       const btn = document.createElement("button");
       btn.className = "city-pill";
       btn.textContent = name;
-      favBox.appendChild(btn);
+      if (favBox) favBox.appendChild(btn);
     });
   }
 
   function requestNotificationPermission() {
     if (!("Notification" in window)) return;
+
     Notification.requestPermission().then((permission) => {
-      window.DOM.show(window.DOM.qs("notif-banner"));
+      window.DOM.show("notif-banner");
       window.DOM.setText("notif-banner", `${t("permissionStatus")}: ${permission}`);
     });
   }
 
   function exportBackup() {
     const text = window.StorageAPI.exportBackup();
-    window.DOM.qs("backup-textarea").value = text;
+    const box = window.DOM.qs("backup-textarea");
+    if (box) box.value = text;
     window.Utils.downloadText("noor-prayer-backup.json", text, "application/json");
   }
 
   async function copyBackup() {
     const text = window.StorageAPI.exportBackup();
-    window.DOM.qs("backup-textarea").value = text;
+    const box = window.DOM.qs("backup-textarea");
+    if (box) box.value = text;
+
     try {
       await navigator.clipboard.writeText(text);
-      window.DOM.show(window.DOM.qs("backup-banner"));
+      window.DOM.show("backup-banner");
       window.DOM.setText("backup-banner", t("backupCopied"));
     } catch (_) {}
   }
 
   function importBackup() {
     try {
-      const text = window.DOM.qs("backup-textarea").value;
+      const text = window.DOM.qs("backup-textarea")?.value || "";
       window.StorageAPI.importBackup(text);
       applyStateToUI();
       renderAll();
-      window.DOM.show(window.DOM.qs("backup-banner"));
+      window.DOM.show("backup-banner");
       window.DOM.setText("backup-banner", t("backupImported"));
     } catch (error) {
       console.error(error);
@@ -917,6 +964,8 @@
 
   function handleOnlineStatus() {
     const banner = window.DOM.qs("offline-banner");
+    if (!banner) return;
+
     if (navigator.onLine) {
       banner.classList.add("hidden");
     } else {
@@ -927,10 +976,13 @@
 
   function renderDebug() {
     const panel = window.DOM.qs("debug-panel");
+    if (!panel) return;
+
     if (!window.APP_STATE.settings.debugEnabled) {
       panel.classList.add("hidden");
       return;
     }
+
     panel.classList.remove("hidden");
     panel.textContent = JSON.stringify(window.APP_STATE, null, 2);
   }
