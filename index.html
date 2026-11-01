@@ -24,7 +24,7 @@
   <link rel="stylesheet" href="./assets/css/styles.css" />
 </head>
 <body data-theme="emerald" dir="rtl">
-  <noscript>
+  <noscript id="noscript-text">
     JavaScript is required for NoorPrayer Pro to calculate prayer times, manage settings, and run offline.
   </noscript>
 
@@ -152,14 +152,14 @@
         <table>
           <thead>
             <tr>
-              <th>اليوم</th>
-              <th>الفجر</th>
-              <th>الشروق</th>
-              <th>الظهر</th>
-              <th>العصر</th>
-              <th>المغرب</th>
-              <th>العشاء</th>
-              <th>الإقامة</th>
+              <th id="month-th-day">اليوم</th>
+              <th id="month-th-fajr">الفجر</th>
+              <th id="month-th-sunrise">الشروق</th>
+              <th id="month-th-dhuhr">الظهر</th>
+              <th id="month-th-asr">العصر</th>
+              <th id="month-th-maghrib">المغرب</th>
+              <th id="month-th-isha">العشاء</th>
+              <th id="month-th-iqamah">الإقامة</th>
             </tr>
           </thead>
           <tbody id="month-table-body"></tbody>
@@ -265,7 +265,7 @@
       <p class="section-subtitle">هذه مجرد حاسبة تقديرية بسيطة. راجع عالمًا موثوقًا للحالات المعقدة.</p>
 
       <div class="input-group">
-        <label for="zakat-basis">أساس النصاب</label>
+        <label for="zakat-basis" id="zakat-basis-label">أساس النصاب</label>
         <select id="zakat-basis">
           <option value="gold">Gold: 85 g</option>
           <option value="silver">Silver: 595 g</option>
@@ -273,38 +273,38 @@
       </div>
 
       <div class="input-group">
-        <label for="zakat-gold-price">سعر غرام الذهب عيار 24</label>
+        <label for="zakat-gold-price" id="zakat-gold-price-label">سعر غرام الذهب عيار 24</label>
         <input type="number" min="0" step="any" id="zakat-gold-price" />
       </div>
 
       <div class="input-group">
-        <label for="zakat-silver-price">سعر غرام الفضة</label>
+        <label for="zakat-silver-price" id="zakat-silver-price-label">سعر غرام الفضة</label>
         <input type="number" min="0" step="any" id="zakat-silver-price" />
       </div>
 
       <div class="input-group">
-        <label for="zakat-cash">النقد</label>
+        <label for="zakat-cash" id="zakat-cash-label">النقد</label>
         <input type="number" min="0" step="any" id="zakat-cash" value="0" />
       </div>
 
       <div class="input-group">
-        <label for="zakat-gold">قيمة الذهب والفضة</label>
+        <label for="zakat-gold" id="zakat-gold-label">قيمة الذهب والفضة</label>
         <input type="number" min="0" step="any" id="zakat-gold" value="0" />
       </div>
 
       <div class="input-group">
-        <label for="zakat-stocks">الاستثمارات والأسهم</label>
+        <label for="zakat-stocks" id="zakat-stocks-label">الاستثمارات والأسهم</label>
         <input type="number" min="0" step="any" id="zakat-stocks" value="0" />
       </div>
 
       <div class="input-group">
-        <label for="zakat-debt">الديون المستحقة</label>
+        <label for="zakat-debt" id="zakat-debt-label">الديون المستحقة</label>
         <input type="number" min="0" step="any" id="zakat-debt" value="0" />
       </div>
 
       <div class="check-row">
         <input type="checkbox" id="zakat-hawl" />
-        <label for="zakat-hawl"><strong>مرّ حول قمري كامل على هذا المال</strong></label>
+        <label for="zakat-hawl" id="zakat-hawl-label"><strong>مرّ حول قمري كامل على هذا المال</strong></label>
       </div>
 
       <div class="result-box">
