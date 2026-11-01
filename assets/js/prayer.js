@@ -640,7 +640,7 @@
 
     try {
       const hijri = new Intl.DateTimeFormat(
-        lang() === "en" ? "en-TN-u-ca-islamic" : "ar-SA-u-ca-islamic",
+        lang() === "en" ? "en-u-ca-islamic-umalqura" : "ar-SA-u-ca-islamic-umalqura",
         { day: "numeric", month: "long", year: "numeric" }
       ).format(today);
 
@@ -660,17 +660,15 @@
     );
   }
 
-  function renderTodayPrayerList() {
+  let lastPaintKey = "";
+
+  function dayKey(date) {
+    return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+  }
+
+  function paintSchedule(now, times, upcoming) {
     const list = document.getElementById("prayer-list");
-    const nextPrayerTitle = document.getElementById("next-prayer-title");
-    const nextPrayerSub = document.getElementById("next-prayer-sub");
-    const countdown = document.getElementById("countdown-timer");
-
     if (!list) return;
-
-    const now = new Date();
-    const times = buildPrayerTimes(now);
-    const upcoming = getUpcomingPrayer(now, times);
 
     list.innerHTML = "";
 
@@ -694,9 +692,16 @@
       list.appendChild(row);
     });
 
-    if (nextPrayerTitle) {
-      nextPrayerTitle.textContent = prayerLabel(upcoming.key);
-    }
+    updateMetaChips();
+    updateHijriAndDate(now);
+  }
+
+  function paintCountdown(now, upcoming) {
+    const nextPrayerTitle = document.getElementById("next-prayer-title");
+    const nextPrayerSub = document.getElementById("next-prayer-sub");
+    const countdown = document.getElementById("countdown-timer");
+
+    if (nextPrayerTitle) nextPrayerTitle.textContent = prayerLabel(upcoming.key);
 
     if (nextPrayerSub && upcoming.time) {
       nextPrayerSub.textContent = `${formatTime(upcoming.time)} • ${formatDateLabel(upcoming.time)}`;
@@ -705,26 +710,41 @@
     if (countdown && upcoming.time) {
       countdown.textContent = formatCountdown(upcoming.time - now);
     }
+  }
 
-    updateMetaChips();
-    updateHijriAndDate(now);
+  // One tick does everything: the countdown every second, and the schedule list
+  // whenever the next prayer, the calendar day or the language changes.
+  function tickPrayer(force) {
+    if (!document.getElementById("prayer-list")) return;
 
-    clearInterval(window.__prayerCountdownInterval);
-    window.__prayerCountdownInterval = setInterval(() => {
-      const currentNow = new Date();
-      const currentTimes = buildPrayerTimes(currentNow);
-      const currentUpcoming = getUpcomingPrayer(currentNow, currentTimes);
+    const now = new Date();
+    const times = buildPrayerTimes(now);
+    const upcoming = getUpcomingPrayer(now, times);
 
-      if (countdown && currentUpcoming.time) {
-        countdown.textContent = formatCountdown(currentUpcoming.time - currentNow);
-      }
-      if (nextPrayerTitle) {
-        nextPrayerTitle.textContent = prayerLabel(currentUpcoming.key);
-      }
-      if (nextPrayerSub && currentUpcoming.time) {
-        nextPrayerSub.textContent = `${formatTime(currentUpcoming.time)} • ${formatDateLabel(currentUpcoming.time)}`;
-      }
-    }, 1000);
+    const key = [
+      dayKey(now),
+      upcoming.key,
+      upcoming.time ? upcoming.time.getTime() : 0,
+      lang()
+    ].join("|");
+
+    if (force || key !== lastPaintKey) {
+      lastPaintKey = key;
+      paintSchedule(now, times, upcoming);
+    }
+
+    paintCountdown(now, upcoming);
+  }
+
+  function renderTodayPrayerList() {
+    tickPrayer(true);
+
+    if (!window.__prayerCountdownInterval) {
+      window.__prayerCountdownInterval = setInterval(() => tickPrayer(false), 1000);
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) tickPrayer(false);
+      });
+    }
   }
 
   function renderMonthTable() {

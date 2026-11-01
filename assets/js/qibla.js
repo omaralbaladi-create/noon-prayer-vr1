@@ -17,11 +17,19 @@
   }
 
   function normalizeDegrees(deg) {
-    return (deg + 360) % 360;
+    return ((deg % 360) + 360) % 360;
+  }
+
+  // Signed shortest rotation from angle a to angle b, in (-180, 180]
+  function shortestDelta(a, b) {
+    return ((((b - a) % 360) + 540) % 360) - 180;
   }
 
   function hasValidCoordinates(lat, lng) {
-    return Number.isFinite(Number(lat)) && Number.isFinite(Number(lng));
+    return (
+      lat !== "" && lat != null && lng !== "" && lng != null &&
+      Number.isFinite(Number(lat)) && Number.isFinite(Number(lng))
+    );
   }
 
   function getQiblaBearing(lat, lng) {
@@ -29,8 +37,8 @@
 
     const meccaLat = toRadians(window.APP_CONFIG.mecca.lat);
     const meccaLng = toRadians(window.APP_CONFIG.mecca.lng);
-    const userLat = toRadians(lat);
-    const userLng = toRadians(lng);
+    const userLat = toRadians(Number(lat));
+    const userLng = toRadians(Number(lng));
 
     const y = Math.sin(meccaLng - userLng);
     const x =
@@ -40,11 +48,23 @@
     return normalizeDegrees(toDegrees(Math.atan2(y, x)));
   }
 
-  function setBearingText(bearing) {
+  // ---------------------------------------------------------------
+  // Shared compass state (module level, so a location change can
+  // refresh the bearing without re-registering the sensor listener)
+  // ---------------------------------------------------------------
+  let bearing = null;        // Qibla bearing for the CURRENT location
+  let roseAngle = 0;         // unwrapped dial angle, avoids a full spin across north
+  let sensorActive = false;  // true once a usable heading has been received
+  let aligned = false;       // hysteresis flag so vibration fires once per alignment
+  let listening = false;
+  let activeEventName = null;
+  let lastStatus = "";
+
+  function setBearingText(value) {
     const bearingText = document.getElementById("qibla-bearing-text");
     if (!bearingText) return;
 
-    if (bearing == null) {
+    if (value == null) {
       bearingText.textContent = t(
         "qiblaBearingUnavailable",
         "زاوية القبلة: غير متاحة",
@@ -55,13 +75,44 @@
 
     bearingText.textContent =
       document.documentElement.lang === "en"
-        ? `Qibla bearing: ${Math.round(bearing)}°`
-        : `زاوية القبلة: ${Math.round(bearing)}°`;
+        ? `Qibla bearing: ${Math.round(value)}°`
+        : `زاوية القبلة: ${Math.round(value)}°`;
   }
 
   function setStatus(message) {
+    if (message === lastStatus) return;
+    lastStatus = message;
     const status = document.getElementById("haptic-status");
     if (status) status.textContent = message;
+  }
+
+  function idleStatus() {
+    if (bearing == null) {
+      return t(
+        "qiblaLocationRequired",
+        "يلزم تحديد موقع صحيح لحساب اتجاه القبلة.",
+        "A valid location is required to calculate the Qibla direction."
+      );
+    }
+    return document.documentElement.lang === "en"
+      ? `No compass sensor in use. Qibla is ${Math.round(bearing)}° clockwise from North.`
+      : `لا يوجد مستشعر بوصلة قيد الاستخدام. القبلة ${Math.round(bearing)}° باتجاه عقارب الساعة من الشمال.`;
+  }
+
+  // Re-read the location and refresh bearing text, needle and idle status.
+  // Called from app.js on every render, so it always reflects the current location.
+  function update() {
+    const loc = window.APP_STATE && window.APP_STATE.location;
+    bearing = loc ? getQiblaBearing(loc.lat, loc.lng) : null;
+
+    setBearingText(bearing);
+
+    const needle = document.getElementById("compass-needle");
+    if (needle) {
+      needle.style.transform = bearing == null ? "" : `rotate(${bearing}deg)`;
+    }
+
+    if (!sensorActive) setStatus(idleStatus());
   }
 
   function requestIOSPermissionIfNeeded() {
@@ -89,7 +140,7 @@
             );
           }
         } catch (error) {
-          console.error("Compass permission denied:", error);
+          console.error("Compass permission error:", error);
           setStatus(
             t(
               "compassPermissionDenied",
@@ -102,47 +153,27 @@
     }
   }
 
-  function startCompass() {
-    const rose = document.getElementById("compass-rose");
-    const needle = document.getElementById("compass-needle");
-
-    if (!rose || !needle) return;
-
-    const lat = window.APP_STATE?.location?.lat;
-    const lng = window.APP_STATE?.location?.lng;
-    const bearing = getQiblaBearing(lat, lng);
-
-    setBearingText(bearing);
-
-    if (bearing == null) {
-      setStatus(
-        t(
-          "qiblaLocationRequired",
-          "يلزم تحديد موقع صحيح لحساب اتجاه القبلة.",
-          "A valid location is required to calculate the Qibla direction."
-        )
-      );
-      return;
+  function readHeading(event) {
+    // iOS Safari: already clockwise from magnetic/true north
+    if (typeof event.webkitCompassHeading === "number" && !Number.isNaN(event.webkitCompassHeading)) {
+      return normalizeDegrees(event.webkitCompassHeading);
     }
+    // Android: only trust the ABSOLUTE alpha (relative alpha has an arbitrary zero)
+    if (event.absolute === true && typeof event.alpha === "number" && !Number.isNaN(event.alpha)) {
+      return normalizeDegrees(360 - event.alpha);
+    }
+    return null;
+  }
 
-    setStatus(
-      t(
-        "compassCalibrating",
-        "جارٍ معايرة البوصلة...",
-        "Calibrating compass..."
-      )
-    );
+  function onOrientation(event) {
+    const rose = document.getElementById("compass-rose");
+    if (!rose) return;
 
-    function handle(event) {
-      let heading = null;
+    const heading = readHeading(event);
 
-      if (typeof event.webkitCompassHeading === "number") {
-        heading = event.webkitCompassHeading;
-      } else if (typeof event.alpha === "number") {
-        heading = 360 - event.alpha;
-      }
-
-      if (heading == null || Number.isNaN(heading)) {
+    if (heading == null) {
+      // No usable reading (desktop, or only relative data): keep the static bearing display.
+      if (!sensorActive) {
         setStatus(
           t(
             "compassUnavailable",
@@ -150,46 +181,72 @@
             "Compass data is unavailable on this device."
           )
         );
-        return;
       }
-
-      heading = normalizeDegrees(heading);
-
-      rose.style.transform = `rotate(${-heading}deg)`;
-      needle.style.transform = `rotate(${bearing}deg)`;
-
-      const diff = Math.abs(((heading - bearing + 540) % 360) - 180);
-
-      if (diff < 8) {
-        setStatus(
-          t(
-            "qiblaVeryClose",
-            "أنت قريب جدًا من اتجاه القبلة.",
-            "You are very close to the Qibla direction."
-          )
-        );
-        if (navigator.vibrate) navigator.vibrate(60);
-      } else {
-        setStatus(
-          document.documentElement.lang === "en"
-            ? `Approx. deviation: ${Math.round(diff)}°`
-            : `انحراف تقريبي: ${Math.round(diff)}°`
-        );
-      }
+      return;
     }
 
-    window.removeEventListener("deviceorientationabsolute", window.__qiblaCompassHandler, true);
-    window.removeEventListener("deviceorientation", window.__qiblaCompassHandler, true);
+    sensorActive = true;
 
-    window.__qiblaCompassHandler = handle;
+    // Dial turns opposite to the phone's heading; unwrap so crossing north never spins the long way.
+    roseAngle += shortestDelta(roseAngle, -heading);
+    rose.style.transform = `rotate(${roseAngle}deg)`;
 
-    window.addEventListener("deviceorientationabsolute", handle, true);
-    window.addEventListener("deviceorientation", handle, true);
+    if (bearing == null) {
+      setStatus(idleStatus());
+      return;
+    }
+
+    // The needle sits at the Qibla bearing inside the dial, so on screen it points at (bearing - heading).
+    const diff = Math.abs(shortestDelta(heading, bearing));
+
+    if (!aligned && diff <= 3) {
+      aligned = true;
+      if (navigator.vibrate) {
+        try { navigator.vibrate(60); } catch (_) {}
+      }
+    } else if (aligned && diff > 6) {
+      aligned = false;
+    }
+
+    if (diff < 8) {
+      setStatus(
+        t(
+          "qiblaVeryClose",
+          "أنت قريب جدًا من اتجاه القبلة.",
+          "You are very close to the Qibla direction."
+        )
+      );
+    } else {
+      setStatus(
+        document.documentElement.lang === "en"
+          ? `Approx. deviation: ${Math.round(diff)}°`
+          : `انحراف تقريبي: ${Math.round(diff)}°`
+      );
+    }
+  }
+
+  function startCompass() {
+    update();
+
+    // Use exactly ONE event stream: absolute if the browser has it, otherwise plain deviceorientation (iOS).
+    const eventName =
+      "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation";
+
+    if (listening && activeEventName === eventName) return;
+
+    if (listening && activeEventName) {
+      window.removeEventListener(activeEventName, onOrientation, true);
+    }
+
+    window.addEventListener(eventName, onOrientation, true);
+    activeEventName = eventName;
+    listening = true;
   }
 
   window.Qibla = {
     getQiblaBearing,
     requestIOSPermissionIfNeeded,
-    startCompass
+    startCompass,
+    update
   };
 })();

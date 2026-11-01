@@ -34,7 +34,19 @@
 
   function setValue(target, value) {
     const el = resolve(target);
-    if (el) el.value = value ?? "";
+    if (!el) return;
+
+    // Never overwrite a text/number field while the user is typing in it.
+    if (
+      el === document.activeElement &&
+      (el.tagName === "INPUT" || el.tagName === "TEXTAREA") &&
+      el.type !== "checkbox" &&
+      el.type !== "radio"
+    ) {
+      return;
+    }
+
+    el.value = value ?? "";
   }
 
   function setChecked(target, checked) {

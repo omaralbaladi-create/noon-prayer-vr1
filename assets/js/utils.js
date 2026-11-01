@@ -88,7 +88,7 @@
 
   function getHijriApprox(date) {
     try {
-      const locale = lang() === "en" ? "en-TN-u-ca-islamic" : "ar-TN-u-ca-islamic";
+      const locale = lang() === "en" ? "en-u-ca-islamic-umalqura" : "ar-SA-u-ca-islamic-umalqura";
       return new Intl.DateTimeFormat(locale, {
         day: "numeric",
         month: "long",
