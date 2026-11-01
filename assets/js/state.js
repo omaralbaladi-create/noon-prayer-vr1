@@ -12,8 +12,11 @@
       settings: {
         lang: "ar",
         theme: "emerald",
-        calcMethod: "UmmAlQura",
+
+        calcMethod: "Makkah",
         asrMethod: "standard",
+        highLatitudeRule: "NightMiddle",
+        midnightMode: "",
         ramadanMode: false,
 
         offsets: {
@@ -22,7 +25,15 @@
           dhuhr: 0,
           asr: 0,
           maghrib: 0,
-          isha: 0
+          isha: 0,
+          midnight: 0
+        },
+
+        customCalc: {
+          fajr: "",
+          maghrib: "",
+          isha: "",
+          midnight: ""
         },
 
         iqamah: {
