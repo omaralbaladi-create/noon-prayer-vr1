@@ -82,6 +82,11 @@
     window.DOM.qs("ramadan-mode").checked = window.APP_STATE.settings.ramadanMode;
     window.DOM.qs("debug-enabled").checked = window.APP_STATE.settings.debugEnabled;
 
+    const latInput = window.DOM.qs("loc-lat");
+    const lngInput = window.DOM.qs("loc-lng");
+    if (latInput) latInput.value = window.APP_STATE.location.lat ?? "";
+    if (lngInput) lngInput.value = window.APP_STATE.location.lng ?? "";
+
     const zakat = window.APP_STATE.settings.zakat;
     window.DOM.qs("zakat-basis").value = zakat.basis;
     window.DOM.qs("zakat-gold-price").value = zakat.goldPrice;
@@ -169,25 +174,69 @@
     };
 
     window.DOM.qs("loc-mode").onchange = (e) => {
-      window.APP_STATE.location.mode = e.target.value;
+      const mode = e.target.value;
+      window.APP_STATE.location.mode = mode;
       toggleLocationModeFields();
-      if (e.target.value === "auto") detectLocation();
+
+      if (mode === "auto") {
+        detectLocation();
+      } else if (mode === "preset") {
+        const presetSelect = window.DOM.qs("loc-preset");
+        if (presetSelect && presetSelect.value) {
+          applyPresetCity(presetSelect.value);
+        }
+      } else if (mode === "custom") {
+        applyCustomCoordinatesFromInputs();
+      }
+
       persistAndRender();
     };
 
     window.DOM.qs("loc-preset").onchange = (e) => {
-      const city = window.APP_CONFIG.presetCities.find((c) => c.id === e.target.value);
-      if (!city) return;
-      window.APP_STATE.location.cityName = lang() === "ar" ? city.nameAr : city.nameEn;
-      window.APP_STATE.location.lat = city.lat;
-      window.APP_STATE.location.lng = city.lng;
+      applyPresetCity(e.target.value);
       persistAndRender();
     };
+
+    const latInput = window.DOM.qs("loc-lat");
+    const lngInput = window.DOM.qs("loc-lng");
+
+    if (latInput) {
+      latInput.oninput = () => {
+        if (window.APP_STATE.location.mode === "custom") {
+          applyCustomCoordinatesFromInputs(false);
+        }
+      };
+      latInput.onchange = () => {
+        if (window.APP_STATE.location.mode !== "custom") {
+          window.APP_STATE.location.mode = "custom";
+        }
+        applyCustomCoordinatesFromInputs(true);
+        persistAndRender();
+      };
+    }
+
+    if (lngInput) {
+      lngInput.oninput = () => {
+        if (window.APP_STATE.location.mode === "custom") {
+          applyCustomCoordinatesFromInputs(false);
+        }
+      };
+      lngInput.onchange = () => {
+        if (window.APP_STATE.location.mode !== "custom") {
+          window.APP_STATE.location.mode = "custom";
+        }
+        applyCustomCoordinatesFromInputs(true);
+        persistAndRender();
+      };
+    }
 
     window.DOM.qs("city-search-btn").onclick = searchCity;
 
     window.DOM.qs("lookup-city").onchange = (e) => {
       window.APP_STATE.location.lookupCity = e.target.checked;
+      if (e.target.checked && window.APP_STATE.location.mode === "custom") {
+        reverseLookupCurrentLocation();
+      }
       persistAndRender();
     };
 
@@ -285,7 +334,7 @@
     window.DOM.qs("reminder-offset").onchange = (e) => {
       window.APP_STATE.settings.notifications.reminderOffset = Number(e.target.value);
       persistAndRender();
-    });
+    };
 
     ["fajr", "dhuhr", "asr", "maghrib", "isha"].forEach((key) => {
       const el = window.DOM.qs(`notify-${key}`);
@@ -314,6 +363,65 @@
       window.DOM.show(window.DOM.qs("pwa-banner"));
       window.DOM.setText("pwa-banner", lang() === "ar" ? "يمكنك تثبيت التطبيق على جهازك." : "You can install the app on your device.");
     });
+  }
+
+  function applyPresetCity(cityId) {
+    const city = window.APP_CONFIG.presetCities.find((c) => c.id === cityId);
+    if (!city) return;
+    window.APP_STATE.location.cityName = lang() === "ar" ? city.nameAr : city.nameEn;
+    window.APP_STATE.location.lat = city.lat;
+    window.APP_STATE.location.lng = city.lng;
+  }
+
+  function applyCustomCoordinatesFromInputs(updateLabel = true) {
+    const latInput = window.DOM.qs("loc-lat");
+    const lngInput = window.DOM.qs("loc-lng");
+    if (!latInput || !lngInput) return;
+
+    const lat = Number(latInput.value);
+    const lng = Number(lngInput.value);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return;
+
+    window.APP_STATE.location.lat = lat;
+    window.APP_STATE.location.lng = lng;
+
+    if (updateLabel) {
+      if (window.APP_STATE.location.lookupCity) {
+        reverseLookupCurrentLocation();
+      } else {
+        window.APP_STATE.location.cityName = lang() === "ar" ? "موقع مخصص" : "Custom location";
+      }
+    }
+  }
+
+  async function reverseLookupCurrentLocation() {
+    const { lat, lng } = window.APP_STATE.location;
+
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}`;
+      const res = await fetch(url, {
+        headers: { "Accept-Language": "ar,en" }
+      });
+      const data = await res.json();
+
+      const address = data.address || {};
+      const cityName =
+        address.city ||
+        address.town ||
+        address.village ||
+        address.state ||
+        data.display_name;
+
+      if (cityName) {
+        window.APP_STATE.location.cityName = cityName;
+        renderLocationLabel();
+        window.StorageAPI.saveState();
+      }
+    } catch (error) {
+      console.error("Reverse lookup failed:", error);
+    }
   }
 
   function switchTab(tabName) {
@@ -353,10 +461,15 @@
   function detectLocation() {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
         window.APP_STATE.location.lat = pos.coords.latitude;
         window.APP_STATE.location.lng = pos.coords.longitude;
         window.APP_STATE.location.cityName = "GPS";
+
+        if (window.APP_STATE.location.lookupCity) {
+          await reverseLookupCurrentLocation();
+        }
+
         persistAndRender();
       },
       () => {
@@ -431,7 +544,8 @@
 
   function renderLocationLabel() {
     const { cityName, lat, lng } = window.APP_STATE.location;
-    window.DOM.setText("location-label", `${cityName} • ${lat.toFixed(2)}, ${lng.toFixed(2)}`);
+    const safeName = cityName || (lang() === "ar" ? "موقع غير محدد" : "Unknown location");
+    window.DOM.setText("location-label", `${safeName} • ${Number(lat).toFixed(2)}, ${Number(lng).toFixed(2)}`);
   }
 
   function renderBadges() {
