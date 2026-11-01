@@ -1,1 +1,528 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#047857" />
+  <meta
+    name="description"
+    content="نور الصلاة برو — مواقيت الصلاة، القبلة، الأذكار، التسبيح، الختمة، سجل الصلوات، الزكاة، والإقامة."
+  />
+  <title>نور الصلاة برو</title>
 
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" href="./assets/icons/icon-512.png" type="image/png" />
+  <link rel="apple-touch-icon" href="./assets/icons/icon-512.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@400;500;700;800&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="./assets/css/styles.css" />
+</head>
+<body data-theme="emerald" dir="rtl">
+  <noscript>
+    JavaScript is required for NoorPrayer Pro to calculate prayer times, manage settings, and run offline.
+  </noscript>
+
+  <div class="header-shell">
+    <header>
+      <div class="app-title">
+        <h1 id="app-title">نور الصلاة برو</h1>
+        <p id="location-label">جارٍ تحديد الموقع...</p>
+      </div>
+      <div class="header-controls">
+        <button id="lang-toggle-btn" class="round-icon-btn" aria-label="Toggle language">🌐</button>
+        <button id="theme-cycle-btn" class="round-icon-btn" aria-label="Change theme">🎨</button>
+        <button id="open-settings-btn" class="round-icon-btn" aria-label="Open settings">⚙️</button>
+      </div>
+    </header>
+
+    <div class="header-badges">
+      <span class="mini-badge" id="install-badge">جاهز كتطبيق ويب</span>
+      <span class="mini-badge" id="notif-badge">الإشعارات متوقفة</span>
+      <span class="mini-badge" id="audio-badge">صوت الأذان متوقف</span>
+      <span class="mini-badge" id="lang-badge">AR</span>
+      <span class="mini-badge" id="ramadan-badge">الوضع العادي</span>
+      <span class="mini-badge" id="version-badge">v1.0.0</span>
+    </div>
+  </div>
+
+  <div id="offline-banner" class="status-banner warning-banner hidden"></div>
+  <div id="lib-banner" class="status-banner error-banner hidden"></div>
+  <div id="pwa-banner" class="status-banner info-banner hidden"></div>
+  <div id="notif-banner" class="status-banner info-banner hidden"></div>
+  <div id="backup-banner" class="status-banner success-banner hidden"></div>
+  <div id="update-banner" class="status-banner info-banner hidden">
+    <div id="update-banner-text"></div>
+    <div class="update-banner-actions">
+      <button id="apply-update-btn" class="btn-secondary">تحديث</button>
+      <button id="dismiss-update-btn" class="btn-ghost">إغلاق</button>
+    </div>
+  </div>
+  <div id="api-banner" class="status-banner warning-banner hidden"></div>
+
+  <div id="main-nav-tabs" class="nav-tabs">
+    <button class="tab-btn active" data-tab="prayer">الصلاة والقبلة</button>
+    <button class="tab-btn" data-tab="month">الشهر</button>
+    <button class="tab-btn" data-tab="salah">سجل الصلوات</button>
+    <button class="tab-btn" data-tab="history">السجل</button>
+    <button class="tab-btn" data-tab="azkar">الأذكار</button>
+    <button class="tab-btn" data-tab="tasbih">التسبيح</button>
+    <button class="tab-btn" data-tab="quran">ختم القرآن</button>
+    <button class="tab-btn" data-tab="zakat">الزكاة</button>
+  </div>
+
+  <div id="tab-prayer" class="tab-content">
+    <div class="hero-card">
+      <h2 id="next-prayer-label">الصلاة القادمة</h2>
+      <div class="time-left" id="countdown-timer">--:--:--</div>
+      <div class="next-prayer-name" id="next-prayer-title">جارٍ التحميل...</div>
+      <div class="next-prayer-sub" id="next-prayer-sub"></div>
+      <div class="hijri" id="hijri-date"></div>
+
+      <div class="meta-chip-row">
+        <span class="meta-chip" id="method-chip">الطريقة: Umm Al-Qura</span>
+        <span class="meta-chip" id="asr-chip">العصر: قياسي</span>
+        <span class="meta-chip" id="iqamah-chip">الإقامة: غير مفعلة</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="section-title">مواقيت اليوم</h3>
+      <p class="section-subtitle">يتم الحساب محليًا حسب الموقع والمنطقة الزمنية للجهاز وطريقة الحساب المختارة.</p>
+      <div id="prayer-list"></div>
+    </div>
+
+    <div class="card compass-shell">
+      <h3 class="section-title" style="color: var(--primary); margin-bottom: 6px;">اتجاه القبلة</h3>
+      <p class="section-subtitle" style="margin-bottom: 14px;">لف الجهاز حتى تتوافق علامة الكعبة مع السهم العلوي.</p>
+
+      <button id="ios-permission-btn" class="btn-primary hidden" style="margin-bottom: 12px;">تفعيل مستشعر البوصلة</button>
+
+      <div class="compass-wrap">
+        <div class="compass-ring"></div>
+        <div class="compass-dial">
+          <div class="compass-rose" id="compass-rose">
+            <span class="card-pt card-n">N</span>
+            <span class="card-pt card-s">S</span>
+            <span class="card-pt card-e">E</span>
+            <span class="card-pt card-w">W</span>
+            <div class="compass-needle" id="compass-needle">
+              <div class="kaaba"><div class="kaaba-band"></div></div>
+              <div class="needle-stem"></div>
+              <div class="needle-tail"></div>
+            </div>
+          </div>
+          <div class="compass-hub"></div>
+          <div class="phone-marker"></div>
+        </div>
+      </div>
+
+      <div style="margin-top: 18px;">
+        <div id="qibla-bearing-text" style="font-size: 1.06rem; font-weight: 800; color: var(--primary);">
+          زاوية القبلة: --°
+        </div>
+        <p id="haptic-status" style="font-size: 0.82rem; color: var(--text-muted); margin-top: 6px;">
+          جارٍ معايرة البوصلة...
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-month" class="tab-content hidden">
+    <div class="card">
+      <h3 class="section-title">الجدول الشهري</h3>
+      <p class="section-subtitle">مواقيت الشهر الحالي حسب موقعك وطريقة الحساب المختارة.</p>
+
+      <div style="display:flex; gap:8px; margin-bottom:12px;">
+        <button id="month-prev-btn" class="btn-secondary" style="flex:1;">→</button>
+        <button id="month-label-btn" class="btn-ghost" style="flex:2; font-weight:800;"></button>
+        <button id="month-next-btn" class="btn-secondary" style="flex:1;">←</button>
+      </div>
+
+      <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+        <button id="export-csv-btn" class="btn-secondary" style="flex:1;">تصدير CSV</button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>اليوم</th>
+              <th>الفجر</th>
+              <th>الشروق</th>
+              <th>الظهر</th>
+              <th>العصر</th>
+              <th>المغرب</th>
+              <th>العشاء</th>
+              <th>الإقامة</th>
+            </tr>
+          </thead>
+          <tbody id="month-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-salah" class="tab-content hidden">
+    <div class="card">
+      <h3 class="section-title">متابعة الصلوات اليومية</h3>
+      <p class="section-subtitle">حدّد كل صلاة أديتها اليوم. تتم إعادة التعيين مع بداية يوم جديد.</p>
+
+      <div class="progress-shell">
+        <div id="salah-progress-bar" class="progress-fill"></div>
+      </div>
+
+      <p id="salah-progress-text" class="center-strong">0 / 5 مكتملة</p>
+      <div id="salah-list"></div>
+
+      <button id="save-salah-day-btn" class="btn-secondary">حفظ اليوم في السجل</button>
+      <button id="reset-salah-btn" class="btn-ghost" style="width:100%; margin-top:12px;">إعادة تعيين سجل صلوات اليوم</button>
+    </div>
+  </div>
+
+  <div id="tab-history" class="tab-content hidden">
+    <div class="card">
+      <h3 class="section-title">سجل الصلوات السابق</h3>
+      <p class="section-subtitle">ملخص الأيام التي حفظتها يدويًا في السجل.</p>
+
+      <div class="stats-grid">
+        <div class="stat-box">
+          <strong id="history-days-stat">0</strong>
+          <span>أيام محفوظة</span>
+        </div>
+        <div class="stat-box">
+          <strong id="history-perfect-stat">0</strong>
+          <span>أيام كاملة</span>
+        </div>
+        <div class="stat-box">
+          <strong id="history-total-stat">0%</strong>
+          <span>متوسط الإنجاز</span>
+        </div>
+      </div>
+
+      <div id="history-list" class="history-list"></div>
+
+      <button id="clear-history-btn" class="btn-ghost" style="width:100%; margin-top:12px;">مسح السجل</button>
+    </div>
+  </div>
+
+  <div id="tab-azkar" class="tab-content hidden">
+    <div id="azkar-sub-tabs" class="nav-tabs" style="margin-bottom: 12px;">
+      <button class="tab-btn active" data-azkar="morning">أذكار الصباح</button>
+      <button class="tab-btn" data-azkar="evening">أذكار المساء</button>
+      <button class="tab-btn" data-azkar="sleep">أذكار النوم</button>
+    </div>
+
+    <p class="azkar-note">يتم تصفير التقدم يوميًا. يُرجى مراجعة النصوص والعدّ من نسخة موثوقة من حصن المسلم.</p>
+    <div id="azkar-container"></div>
+
+    <button id="reset-azkar-btn" class="btn-ghost" style="width: 100%;">إعادة تعيين تقدم الأذكار لليوم</button>
+  </div>
+
+  <div id="tab-tasbih" class="tab-content hidden">
+    <div class="card" style="text-align: center; padding: 30px 16px;">
+      <h3 id="dhikr-title" style="margin-bottom: 4px; color: var(--primary);">سُبْحَانَ اللَّهِ</h3>
+      <div id="dhikr-ar" class="azkar-arabic" style="text-align: center; margin-bottom: 0;"></div>
+      <div class="tasbih-count" id="tasbih-display">0</div>
+      <p id="tasbih-target" style="color: var(--text-muted); margin-bottom: 4px;">الهدف: 33</p>
+      <p id="tasbih-msg" style="color: var(--primary); font-weight: 800; min-height: 1.4em; margin-bottom: 12px;"></p>
+
+      <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap;">
+        <button class="dhikr-btn" data-dhikr="0">سبحان الله</button>
+        <button class="dhikr-btn" data-dhikr="1">الحمد لله</button>
+        <button class="dhikr-btn" data-dhikr="2">الله أكبر</button>
+      </div>
+
+      <button id="tasbih-increment-btn" class="btn-primary" style="font-size: 1.2rem; padding: 18px;">اضغط للعد</button>
+      <button id="tasbih-reset-btn" class="btn-ghost" style="margin-top: 12px;">إعادة تعيين العداد</button>
+    </div>
+  </div>
+
+  <div id="tab-quran" class="tab-content hidden">
+    <div class="card">
+      <h3 class="section-title">تقدم ختم القرآن</h3>
+      <p class="section-subtitle">اضغط على رقم الجزء لتحديده مكتملًا أو غير مكتمل.</p>
+
+      <div class="progress-shell">
+        <div id="quran-progress-bar" class="progress-fill"></div>
+      </div>
+
+      <p id="quran-progress-text" class="center-strong">0 / 30 جزء مكتمل (0%)</p>
+      <div id="juz-grid" class="juz-grid"></div>
+
+      <button id="reset-khatm-btn" class="btn-ghost" style="width: 100%; margin-top: 12px;">بدء ختمة جديدة</button>
+    </div>
+  </div>
+
+  <div id="tab-zakat" class="tab-content hidden">
+    <div class="card">
+      <h3 class="section-title">حاسبة زكاة المال</h3>
+      <p class="section-subtitle">هذه مجرد حاسبة تقديرية بسيطة. راجع عالمًا موثوقًا للحالات المعقدة.</p>
+
+      <div class="input-group">
+        <label for="zakat-basis">أساس النصاب</label>
+        <select id="zakat-basis">
+          <option value="gold">Gold: 85 g</option>
+          <option value="silver">Silver: 595 g</option>
+        </select>
+      </div>
+
+      <div class="input-group">
+        <label for="zakat-gold-price">سعر غرام الذهب عيار 24</label>
+        <input type="number" min="0" step="any" id="zakat-gold-price" />
+      </div>
+
+      <div class="input-group">
+        <label for="zakat-silver-price">سعر غرام الفضة</label>
+        <input type="number" min="0" step="any" id="zakat-silver-price" />
+      </div>
+
+      <div class="input-group">
+        <label for="zakat-cash">النقد</label>
+        <input type="number" min="0" step="any" id="zakat-cash" value="0" />
+      </div>
+
+      <div class="input-group">
+        <label for="zakat-gold">قيمة الذهب والفضة</label>
+        <input type="number" min="0" step="any" id="zakat-gold" value="0" />
+      </div>
+
+      <div class="input-group">
+        <label for="zakat-stocks">الاستثمارات والأسهم</label>
+        <input type="number" min="0" step="any" id="zakat-stocks" value="0" />
+      </div>
+
+      <div class="input-group">
+        <label for="zakat-debt">الديون المستحقة</label>
+        <input type="number" min="0" step="any" id="zakat-debt" value="0" />
+      </div>
+
+      <div class="check-row">
+        <input type="checkbox" id="zakat-hawl" />
+        <label for="zakat-hawl"><strong>مرّ حول قمري كامل على هذا المال</strong></label>
+      </div>
+
+      <div class="result-box">
+        <p><span id="zakat-nisab-label">النصاب</span>: <span id="zakat-nisab-val">--</span></p>
+        <p><span>المال الخاضع للزكاة</span>: <span id="zakat-total">0</span></p>
+        <p id="zakat-status-msg"></p>
+        <p class="zakat-due-line">الزكاة الواجبة (2.5%): <span id="zakat-due">0</span></p>
+      </div>
+    </div>
+  </div>
+
+  <p class="footer-note" id="footer-note">
+    يعمل نور الصلاة برو بشكل أفضل عبر HTTPS. قد لا تعمل بعض الإشعارات وأذونات البوصلة وخيارات التثبيت بالكامل داخل بعض المعاينات.
+  </p>
+
+  <div id="overlay" class="overlay hidden"></div>
+
+  <div id="settings-modal" class="card modal hidden" role="dialog" aria-modal="true" aria-label="App settings">
+    <h3 style="margin-bottom: 12px;">إعدادات التطبيق</h3>
+
+    <div class="input-group">
+      <label for="lang-select">اللغة</label>
+      <select id="lang-select">
+        <option value="ar">العربية</option>
+        <option value="en">English</option>
+      </select>
+    </div>
+
+    <div class="input-group">
+      <label for="loc-mode">مصدر الموقع</label>
+      <select id="loc-mode">
+        <option value="auto">Automatic (GPS)</option>
+        <option value="preset">Choose a city</option>
+        <option value="custom">Custom coordinates</option>
+        <option value="search">Search for a city</option>
+      </select>
+    </div>
+
+    <div id="loc-preset-group" class="input-group hidden">
+      <select id="loc-preset" aria-label="Preset city"></select>
+    </div>
+
+    <div id="loc-custom-group" class="input-group hidden">
+      <input type="number" step="any" id="loc-lat" placeholder="Latitude" style="margin-bottom: 8px;" />
+      <input type="number" step="any" id="loc-lng" placeholder="Longitude" />
+    </div>
+
+    <div id="loc-search-group" class="input-group hidden">
+      <label for="city-search-input">ابحث عن مدينة أو منطقة</label>
+      <input type="text" id="city-search-input" placeholder="e.g. Riyadh, Jeddah, Khobar" />
+      <button id="city-search-btn" class="btn-secondary" style="width: 100%; margin-top: 8px;">بحث</button>
+      <div id="city-search-status" class="small-note" style="margin-top: 8px;"></div>
+      <div id="city-search-results" class="search-results"></div>
+
+      <div class="divider"></div>
+
+      <div>
+        <div class="small-note">المفضلة</div>
+        <div id="favorite-cities" class="pill-row"></div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <div class="small-note">عمليات البحث الأخيرة</div>
+        <div id="recent-cities" class="pill-row"></div>
+      </div>
+    </div>
+
+    <div class="check-row">
+      <input type="checkbox" id="lookup-city" />
+      <label for="lookup-city">جلب اسم المدينة من الإحداثيات</label>
+    </div>
+
+    <div class="input-group">
+      <label for="calc-method">طريقة الحساب</label>
+      <select id="calc-method">
+        <option value="UmmAlQura">Umm Al-Qura University, Makkah</option>
+        <option value="MuslimWorldLeague">Muslim World League (MWL)</option>
+        <option value="NorthAmerica">ISNA (North America)</option>
+        <option value="Dubai">Dubai</option>
+        <option value="Qatar">Qatar</option>
+      </select>
+    </div>
+
+    <div class="input-group">
+      <label for="asr-method">حساب العصر</label>
+      <select id="asr-method">
+        <option value="standard">Standard</option>
+        <option value="hanafi">Hanafi</option>
+      </select>
+    </div>
+
+    <div class="input-group">
+      <label for="theme-select">المظهر</label>
+      <select id="theme-select">
+        <option value="emerald">Emerald Mosque</option>
+        <option value="midnight">Midnight Blue</option>
+        <option value="desert">Desert Gold</option>
+        <option value="sunset">Sunset Glow</option>
+      </select>
+    </div>
+
+    <div class="check-row">
+      <input type="checkbox" id="ramadan-mode" />
+      <label for="ramadan-mode">تفعيل وضع رمضان</label>
+    </div>
+
+    <div class="divider"></div>
+
+    <h4 style="margin-bottom:10px;">الإزاحات اليدوية للمواقيت</h4>
+    <div class="offset-grid">
+      <div class="offset-box"><label for="offset-fajr">الفجر</label><input type="number" step="1" id="offset-fajr" value="0" /></div>
+      <div class="offset-box"><label for="offset-sunrise">الشروق</label><input type="number" step="1" id="offset-sunrise" value="0" /></div>
+      <div class="offset-box"><label for="offset-dhuhr">الظهر</label><input type="number" step="1" id="offset-dhuhr" value="0" /></div>
+      <div class="offset-box"><label for="offset-asr">العصر</label><input type="number" step="1" id="offset-asr" value="0" /></div>
+      <div class="offset-box"><label for="offset-maghrib">المغرب</label><input type="number" step="1" id="offset-maghrib" value="0" /></div>
+      <div class="offset-box"><label for="offset-isha">العشاء</label><input type="number" step="1" id="offset-isha" value="0" /></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <h4 style="margin-bottom:10px;">أوقات الإقامة</h4>
+    <div class="iqamah-grid">
+      <div class="offset-box"><label for="iqamah-fajr">Fajr</label><input type="text" id="iqamah-fajr" placeholder="05:30" /></div>
+      <div class="offset-box"><label for="iqamah-dhuhr">Dhuhr</label><input type="text" id="iqamah-dhuhr" placeholder="12:15" /></div>
+      <div class="offset-box"><label for="iqamah-asr">Asr</label><input type="text" id="iqamah-asr" placeholder="15:45" /></div>
+      <div class="offset-box"><label for="iqamah-maghrib">Maghrib</label><input type="text" id="iqamah-maghrib" placeholder="18:05" /></div>
+      <div class="offset-box"><label for="iqamah-isha">Isha</label><input type="text" id="iqamah-isha" placeholder="19:30" /></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <h4 style="margin-bottom:10px;">تنبيهات الصلاة</h4>
+
+    <div class="check-row"><input type="checkbox" id="notif-enabled" /><label for="notif-enabled">تفعيل تنبيهات الصلاة</label></div>
+    <div class="check-row"><input type="checkbox" id="audio-enabled" /><label for="audio-enabled">تفعيل صوت الأذان</label></div>
+
+    <div class="input-group">
+      <label for="adhan-audio-select">صوت الأذان</label>
+      <select id="adhan-audio-select">
+        <option value="makkah">Makkah style</option>
+        <option value="madinah">Madinah style</option>
+      </select>
+    </div>
+
+    <div class="input-group">
+      <label for="reminder-offset">ذكّرني قبل الصلاة</label>
+      <select id="reminder-offset">
+        <option value="0">At prayer time</option>
+        <option value="5">5 minutes before</option>
+        <option value="10">10 minutes before</option>
+        <option value="15">15 minutes before</option>
+      </select>
+    </div>
+
+    <div class="check-row"><input type="checkbox" id="notify-fajr" checked /><label for="notify-fajr">تنبيه الفجر</label></div>
+    <div class="check-row"><input type="checkbox" id="notify-dhuhr" checked /><label for="notify-dhuhr">تنبيه الظهر</label></div>
+    <div class="check-row"><input type="checkbox" id="notify-asr" checked /><label for="notify-asr">تنبيه العصر</label></div>
+    <div class="check-row"><input type="checkbox" id="notify-maghrib" checked /><label for="notify-maghrib">تنبيه المغرب</label></div>
+    <div class="check-row"><input type="checkbox" id="notify-isha" checked /><label for="notify-isha">تنبيه العشاء</label></div>
+
+    <button id="notif-permission-btn" class="btn-secondary" style="width: 100%; margin-bottom: 8px;">طلب إذن الإشعارات</button>
+
+    <div class="divider"></div>
+
+    <h4 style="margin-bottom:10px;">النسخ الاحتياطي والاستعادة</h4>
+
+    <div style="display:flex; gap:8px; margin-bottom:10px;">
+      <button id="export-backup-btn" class="btn-secondary" style="flex:1;">تصدير نسخة</button>
+      <button id="copy-backup-btn" class="btn-secondary" style="flex:1;">نسخ JSON</button>
+    </div>
+
+    <div class="input-group">
+      <label for="backup-textarea">بيانات النسخة الاحتياطية</label>
+      <textarea id="backup-textarea" class="backup-box" spellcheck="false"></textarea>
+    </div>
+
+    <button id="import-backup-btn" class="btn-secondary" style="width:100%;">استيراد النسخة</button>
+
+    <div class="divider"></div>
+
+    <h4 style="margin-bottom:10px;">Debug</h4>
+    <div class="check-row">
+      <input type="checkbox" id="debug-enabled" />
+      <label for="debug-enabled">Enable local debug panel</label>
+    </div>
+    <div id="debug-panel" class="debug-box hidden"></div>
+
+    <div class="divider"></div>
+
+    <button id="install-app-btn" class="btn-secondary" style="width: 100%; margin-bottom: 8px;">تثبيت التطبيق</button>
+    <button id="close-settings-btn" class="btn-primary">إغلاق</button>
+  </div>
+
+  <div id="confirm-modal" class="card modal hidden" role="dialog" aria-modal="true" aria-label="Confirmation dialog">
+    <h3 id="confirm-title" style="margin-bottom: 8px;">تأكيد</h3>
+    <p id="confirm-message" style="font-size: 0.92rem; color: var(--text-muted); line-height: 1.5;">هل أنت متأكد؟</p>
+    <div class="modal-actions">
+      <button id="confirm-cancel-btn" class="muted-btn">إلغاء</button>
+      <button id="confirm-ok-btn" class="danger-btn">تأكيد</button>
+    </div>
+  </div>
+
+  <audio id="adhan-audio-makkah" preload="none">
+    <source src="./assets/audio/adhan-makkah.mp3" type="audio/mpeg" />
+  </audio>
+  <audio id="adhan-audio-madinah" preload="none">
+    <source src="./assets/audio/adhan-madinah.mp3" type="audio/mpeg" />
+  </audio>
+
+  <script src="./assets/js/config.js"></script>
+  <script src="./assets/js/state.js"></script>
+  <script src="./assets/js/storage.js"></script>
+  <script src="./assets/js/utils.js"></script>
+  <script src="./assets/js/i18n.js"></script>
+  <script src="./assets/js/dom.js"></script>
+  <script src="./assets/js/qibla.js"></script>
+  <script src="./assets/js/prayer.js"></script>
+  <script src="./assets/data/azkar.js"></script>
+  <script src="./assets/js/app.js"></script>
+</body>
+</html>
