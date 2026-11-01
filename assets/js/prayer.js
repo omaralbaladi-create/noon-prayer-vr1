@@ -1,6 +1,5 @@
 (function () {
   const prayerKeys = ["fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha"];
-  const exportPrayerKeys = ["fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha"];
 
   const prayerNames = {
     ar: {
@@ -36,6 +35,14 @@
       Dubai: "Dubai",
       Qatar: "Qatar"
     }
+  };
+
+  const methodParams = {
+    UmmAlQura: { fajrAngle: 18.5, ishaMinutesAfterMaghrib: "ramadanAware" },
+    MuslimWorldLeague: { fajrAngle: 18, ishaAngle: 17 },
+    NorthAmerica: { fajrAngle: 15, ishaAngle: 15 },
+    Dubai: { fajrAngle: 18.2, ishaAngle: 18.2 },
+    Qatar: { fajrAngle: 18, ishaMinutesAfterMaghrib: 90 }
   };
 
   const monthNames = {
@@ -80,88 +87,207 @@
       : t("standard", "قياسي", "Standard");
   }
 
-  function pad2(n) {
-    return String(n).padStart(2, "0");
+  function deg2rad(d) {
+    return (d * Math.PI) / 180;
   }
 
-  function cloneDate(date) {
-    return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds());
+  function rad2deg(r) {
+    return (r * 180) / Math.PI;
   }
 
-  function addMinutes(date, minutes) {
-    return new Date(date.getTime() + minutes * 60000);
+  function sinDeg(d) {
+    return Math.sin(deg2rad(d));
   }
 
-  function dayOfYear(date) {
-    const start = new Date(date.getFullYear(), 0, 0);
-    const diff = date - start;
-    return Math.floor(diff / 86400000);
+  function cosDeg(d) {
+    return Math.cos(deg2rad(d));
+  }
+
+  function tanDeg(d) {
+    return Math.tan(deg2rad(d));
+  }
+
+  function arcsinDeg(x) {
+    return rad2deg(Math.asin(x));
+  }
+
+  function arccosDeg(x) {
+    return rad2deg(Math.acos(x));
+  }
+
+  function arctanDeg(x) {
+    return rad2deg(Math.atan(x));
+  }
+
+  function arctan2Deg(y, x) {
+    return rad2deg(Math.atan2(y, x));
+  }
+
+  function fixAngle(a) {
+    a = a - 360 * Math.floor(a / 360);
+    return a < 0 ? a + 360 : a;
+  }
+
+  function fixHour(h) {
+    h = h - 24 * Math.floor(h / 24);
+    return h < 0 ? h + 24 : h;
   }
 
   function getLocation() {
     const lat = Number(window.APP_STATE?.location?.lat);
     const lng = Number(window.APP_STATE?.location?.lng);
     return {
-      lat: Number.isFinite(lat) ? lat : 21.4225,
-      lng: Number.isFinite(lng) ? lng : 39.8262
+      lat: Number.isFinite(lat) ? lat : 24.7136,
+      lng: Number.isFinite(lng) ? lng : 46.6753
     };
   }
 
-  function seasonalShift(dayIndex, amplitude) {
-    return Math.round(Math.sin((2 * Math.PI * (dayIndex - 80)) / 365) * amplitude);
+  function getTimeZoneHours(date) {
+    return -date.getTimezoneOffset() / 60;
   }
 
-  function offsetMinutes(base, key) {
-    const val = Number(window.APP_STATE?.settings?.offsets?.[key] || 0);
-    return Number.isFinite(val) ? val : 0;
-  }
+  function getJulianDate(date) {
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
 
-  function buildPrayerTimes(dateInput) {
-    const date = new Date(dateInput);
-    const { lat } = getLocation();
-    const doy = dayOfYear(date);
-
-    const latitudeFactor = Math.max(-1, Math.min(1, lat / 90));
-    const summerShift = seasonalShift(doy, 70);
-    const winterShift = seasonalShift(doy + 182, 40);
-
-    const fajrBase = 300 - Math.round(latitudeFactor * 35) - Math.round(summerShift * 0.35);
-    const sunriseBase = 360 - Math.round(latitudeFactor * 25) - Math.round(summerShift * 0.3);
-    const dhuhrBase = 720 + seasonalShift(doy, 6);
-    const asrBase = 930 + Math.round(latitudeFactor * 18) + winterShift;
-    const maghribBase = 1080 + Math.round(latitudeFactor * 28) + Math.round(summerShift * 0.32);
-    const ishaBase = 1155 + Math.round(latitudeFactor * 18) + Math.round(summerShift * 0.28);
-
-    const times = {
-      fajr: minutesToDate(date, fajrBase + offsetMinutes(fajrBase, "fajr")),
-      sunrise: minutesToDate(date, sunriseBase + offsetMinutes(sunriseBase, "sunrise")),
-      dhuhr: minutesToDate(date, dhuhrBase + offsetMinutes(dhuhrBase, "dhuhr")),
-      asr: minutesToDate(
-        date,
-        asrBase +
-          (window.APP_STATE?.settings?.asrMethod === "hanafi" ? 18 : 0) +
-          offsetMinutes(asrBase, "asr")
-      ),
-      maghrib: minutesToDate(date, maghribBase + offsetMinutes(maghribBase, "maghrib")),
-      isha: minutesToDate(date, ishaBase + offsetMinutes(ishaBase, "isha"))
-    };
-
-    if (window.APP_STATE?.settings?.ramadanMode) {
-      times.isha = addMinutes(times.isha, 10);
+    let y = year;
+    let m = month;
+    if (m <= 2) {
+      y -= 1;
+      m += 12;
     }
 
-    return times;
+    const A = Math.floor(y / 100);
+    const B = 2 - A + Math.floor(A / 4);
+
+    return Math.floor(365.25 * (y + 4716))
+      + Math.floor(30.6001 * (m + 1))
+      + day + B - 1524.5;
   }
 
-  function minutesToDate(baseDate, totalMinutes) {
+  function sunPosition(jd) {
+    const d = jd - 2451545.0;
+    const g = fixAngle(357.529 + 0.98560028 * d);
+    const q = fixAngle(280.459 + 0.98564736 * d);
+    const L = fixAngle(q + 1.915 * sinDeg(g) + 0.020 * sinDeg(2 * g));
+    const e = 23.439 - 0.00000036 * d;
+
+    const RA = fixHour(arctan2Deg(cosDeg(e) * sinDeg(L), cosDeg(L)) / 15);
+    const decl = arcsinDeg(sinDeg(e) * sinDeg(L));
+    const eqt = q / 15 - RA;
+
+    return { declination: decl, equation: eqt };
+  }
+
+  function midDay(jd, timeZone, lng) {
+    const sp = sunPosition(jd);
+    return fixHour(12 + timeZone - lng / 15 - sp.equation);
+  }
+
+  function timeForSolarAngle(angleBelowHorizon, jd, lat, lng, timeZone, direction) {
+    const sp = sunPosition(jd);
+    const noon = midDay(jd, timeZone, lng);
+    const decl = sp.declination;
+
+    const term1 = -sinDeg(angleBelowHorizon) - sinDeg(decl) * sinDeg(lat);
+    const term2 = cosDeg(decl) * cosDeg(lat);
+    const ratio = term1 / term2;
+
+    if (ratio < -1 || ratio > 1) return null;
+
+    const t = arccosDeg(ratio) / 15;
+    return noon + (direction === "ccw" ? -t : t);
+  }
+
+  function asrTime(step, jd, lat, lng, timeZone) {
+    const sp = sunPosition(jd);
+    const decl = sp.declination;
+    const angle = -arccosForAsr(step, lat, decl);
+    return timeForSolarAngle(angle, jd, lat, lng, timeZone, "cw");
+  }
+
+  function arccosForAsr(step, lat, decl) {
+    const g = -arctanDeg(1 / (step + tanDeg(Math.abs(lat - decl))));
+    return g;
+  }
+
+  function hoursToDate(baseDate, hours) {
+    if (hours == null || !Number.isFinite(hours)) return null;
+    const h = fixHour(hours);
+    const totalMinutes = Math.round(h * 60);
     const date = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), 0, 0, 0, 0);
     date.setMinutes(totalMinutes);
     return date;
   }
 
+  function addMinutes(date, minutes) {
+    return new Date(date.getTime() + minutes * 60000);
+  }
+
+  function safeOffset(key) {
+    const n = Number(window.APP_STATE?.settings?.offsets?.[key] || 0);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function isRamadanMode() {
+    return !!window.APP_STATE?.settings?.ramadanMode;
+  }
+
+  function getMethodParams() {
+    const method = window.APP_STATE?.settings?.calcMethod || "UmmAlQura";
+    return methodParams[method] || methodParams.UmmAlQura;
+  }
+
+  function buildPrayerTimes(dateInput) {
+    const date = new Date(dateInput);
+    const { lat, lng } = getLocation();
+    const timeZone = getTimeZoneHours(date);
+    const jd = getJulianDate(date);
+
+    const params = getMethodParams();
+
+    const dhuhrH = midDay(jd, timeZone, lng);
+    const sunriseH = timeForSolarAngle(0.833, jd, lat, lng, timeZone, "ccw");
+    const sunsetH = timeForSolarAngle(0.833, jd, lat, lng, timeZone, "cw");
+    const fajrH = timeForSolarAngle(params.fajrAngle, jd, lat, lng, timeZone, "ccw");
+    const asrFactor = window.APP_STATE?.settings?.asrMethod === "hanafi" ? 2 : 1;
+    const asrH = asrTime(asrFactor, jd, lat, lng, timeZone);
+
+    let ishaH = null;
+    if (typeof params.ishaAngle === "number") {
+      ishaH = timeForSolarAngle(params.ishaAngle, jd, lat, lng, timeZone, "cw");
+    }
+
+    const times = {
+      fajr: hoursToDate(date, fajrH),
+      sunrise: hoursToDate(date, sunriseH),
+      dhuhr: hoursToDate(date, dhuhrH),
+      asr: hoursToDate(date, asrH),
+      maghrib: hoursToDate(date, sunsetH),
+      isha: hoursToDate(date, ishaH)
+    };
+
+    if (params.ishaMinutesAfterMaghrib && times.maghrib) {
+      let mins = params.ishaMinutesAfterMaghrib;
+      if (mins === "ramadanAware") {
+        mins = isRamadanMode() ? 120 : 90;
+      }
+      times.isha = addMinutes(times.maghrib, mins);
+    }
+
+    Object.keys(times).forEach((key) => {
+      if (times[key]) {
+        times[key] = addMinutes(times[key], safeOffset(key));
+      }
+    });
+
+    return times;
+  }
+
   function formatTime(date) {
-    const isEn = lang() === "en";
-    return new Intl.DateTimeFormat(isEn ? "en-US" : "ar-SA", {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "--:--";
+    return new Intl.DateTimeFormat(lang() === "en" ? "en-US" : "ar-SA", {
       hour: "numeric",
       minute: "2-digit",
       hour12: true
@@ -197,8 +323,9 @@
 
   function getUpcomingPrayer(now, times) {
     for (const key of prayerKeys) {
-      if (times[key] > now) {
-        return { key, time: times[key] };
+      const val = times[key];
+      if (val && val > now) {
+        return { key, time: val };
       }
     }
 
@@ -212,7 +339,7 @@
     const h = Math.floor(total / 3600);
     const m = Math.floor((total % 3600) / 60);
     const s = total % 60;
-    return `${pad2(h)}:${pad2(m)}:${pad2(s)}`;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   }
 
   function updateMetaChips() {
@@ -249,22 +376,28 @@
     const el = document.getElementById("hijri-date");
     if (!el) return;
 
-    let gregorianText = formatDateLabel(today);
+    const gregorianText = formatDateLabel(today);
 
     try {
-      const hijri = new Intl.DateTimeFormat(lang() === "en" ? "en-TN-u-ca-islamic" : "ar-SA-u-ca-islamic", {
-        day: "numeric",
-        month: "long",
-        year: "numeric"
-      }).format(today);
+      const hijri = new Intl.DateTimeFormat(
+        lang() === "en" ? "en-TN-u-ca-islamic" : "ar-SA-u-ca-islamic",
+        { day: "numeric", month: "long", year: "numeric" }
+      ).format(today);
 
-      el.textContent =
-        lang() === "en"
-          ? `${gregorianText} • ${hijri}`
-          : `${gregorianText} • ${hijri}`;
+      el.textContent = `${gregorianText} • ${hijri}`;
     } catch (_) {
       el.textContent = gregorianText;
     }
+  }
+
+  function sameDay(a, b) {
+    return (
+      a &&
+      b &&
+      a.getFullYear() === b.getFullYear() &&
+      a.getMonth() === b.getMonth() &&
+      a.getDate() === b.getDate()
+    );
   }
 
   function renderTodayPrayerList() {
@@ -285,18 +418,17 @@
       const row = document.createElement("div");
       row.className = "prayer-row";
 
-      const isNext = upcoming.key === key && sameDay(times[key], upcoming.time);
+      const timeValue = times[key];
+      const isNext = upcoming.key === key && sameDay(timeValue, upcoming.time);
       const iqamah = key === "sunrise" ? "" : getIqamahLabel(key);
 
       row.innerHTML = `
         <div class="prayer-row-main ${isNext ? "active" : ""}">
           <div class="prayer-row-name">${prayerLabel(key)}</div>
-          <div class="prayer-row-time">${formatTime(times[key])}</div>
+          <div class="prayer-row-time">${formatTime(timeValue)}</div>
         </div>
         <div class="prayer-row-sub">
-          ${key === "sunrise"
-            ? ""
-            : (lang() === "en" ? `Iqamah: ${iqamah}` : `الإقامة: ${iqamah}`)}
+          ${key === "sunrise" ? "" : (lang() === "en" ? `Iqamah: ${iqamah}` : `الإقامة: ${iqamah}`)}
         </div>
       `;
       list.appendChild(row);
@@ -306,14 +438,11 @@
       nextPrayerTitle.textContent = prayerLabel(upcoming.key);
     }
 
-    if (nextPrayerSub) {
-      nextPrayerSub.textContent =
-        lang() === "en"
-          ? `${formatTime(upcoming.time)} • ${formatDateLabel(upcoming.time)}`
-          : `${formatTime(upcoming.time)} • ${formatDateLabel(upcoming.time)}`;
+    if (nextPrayerSub && upcoming.time) {
+      nextPrayerSub.textContent = `${formatTime(upcoming.time)} • ${formatDateLabel(upcoming.time)}`;
     }
 
-    if (countdown) {
+    if (countdown && upcoming.time) {
       countdown.textContent = formatCountdown(upcoming.time - now);
     }
 
@@ -326,27 +455,16 @@
       const currentTimes = buildPrayerTimes(currentNow);
       const currentUpcoming = getUpcomingPrayer(currentNow, currentTimes);
 
-      if (countdown) {
+      if (countdown && currentUpcoming.time) {
         countdown.textContent = formatCountdown(currentUpcoming.time - currentNow);
       }
       if (nextPrayerTitle) {
         nextPrayerTitle.textContent = prayerLabel(currentUpcoming.key);
       }
-      if (nextPrayerSub) {
-        nextPrayerSub.textContent =
-          lang() === "en"
-            ? `${formatTime(currentUpcoming.time)} • ${formatDateLabel(currentUpcoming.time)}`
-            : `${formatTime(currentUpcoming.time)} • ${formatDateLabel(currentUpcoming.time)}`;
+      if (nextPrayerSub && currentUpcoming.time) {
+        nextPrayerSub.textContent = `${formatTime(currentUpcoming.time)} • ${formatDateLabel(currentUpcoming.time)}`;
       }
     }, 1000);
-  }
-
-  function sameDay(a, b) {
-    return (
-      a.getFullYear() === b.getFullYear() &&
-      a.getMonth() === b.getMonth() &&
-      a.getDate() === b.getDate()
-    );
   }
 
   function renderMonthTable() {
@@ -432,11 +550,7 @@
     }
 
     const csv = rows
-      .map((row) =>
-        row
-          .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
-          .join(",")
-      )
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
       .join("\n");
 
     const safeMonth = `${month + 1}`.padStart(2, "0");
