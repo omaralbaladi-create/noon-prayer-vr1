@@ -16,3 +16,12 @@ const prayerNames = {
     isha: "Isha"
   }
 };
+
+function getPrayerLang() {
+  return window.I18N?.getLang?.() === "en" ? "en" : "ar";
+}
+
+function prayerLabel(key) {
+  const lang = getPrayerLang();
+  return prayerNames[lang]?.[key] || key;
+}
