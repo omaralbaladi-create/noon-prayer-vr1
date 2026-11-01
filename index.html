@@ -377,14 +377,26 @@
       <label for="lookup-city">جلب اسم المدينة من الإحداثيات</label>
     </div>
 
+    <div class="divider"></div>
+
+    <h4 style="margin-bottom:10px;">إعدادات حساب الصلاة</h4>
+
     <div class="input-group">
       <label for="calc-method">طريقة الحساب</label>
       <select id="calc-method">
-        <option value="UmmAlQura">Umm Al-Qura University, Makkah</option>
-        <option value="MuslimWorldLeague">Muslim World League (MWL)</option>
-        <option value="NorthAmerica">ISNA (North America)</option>
+        <option value="Makkah">Umm al-Qura, Makkah</option>
+        <option value="MWL">Muslim World League (MWL)</option>
+        <option value="ISNA">ISNA</option>
+        <option value="Egypt">Egyptian General Authority</option>
+        <option value="Karachi">Karachi</option>
+        <option value="Tehran">Tehran</option>
+        <option value="Jafari">Jafari</option>
         <option value="Dubai">Dubai</option>
         <option value="Qatar">Qatar</option>
+        <option value="Kuwait">Kuwait</option>
+        <option value="Singapore">Singapore</option>
+        <option value="Turkey">Turkey</option>
+        <option value="Custom">Custom</option>
       </select>
     </div>
 
@@ -397,18 +409,54 @@
     </div>
 
     <div class="input-group">
-      <label for="theme-select">المظهر</label>
-      <select id="theme-select">
-        <option value="emerald">Emerald Mosque</option>
-        <option value="midnight">Midnight Blue</option>
-        <option value="desert">Desert Gold</option>
-        <option value="sunset">Sunset Glow</option>
+      <label for="high-latitude-rule">قاعدة خطوط العرض العالية</label>
+      <select id="high-latitude-rule">
+        <option value="NightMiddle">Night Middle</option>
+        <option value="AngleBased">Angle Based</option>
+        <option value="OneSeventh">One Seventh</option>
+      </select>
+    </div>
+
+    <div class="input-group">
+      <label for="midnight-mode">طريقة منتصف الليل</label>
+      <select id="midnight-mode">
+        <option value="">Use method default</option>
+        <option value="Standard">Standard</option>
+        <option value="Jafari">Jafari</option>
       </select>
     </div>
 
     <div class="check-row">
       <input type="checkbox" id="ramadan-mode" />
       <label for="ramadan-mode">تفعيل وضع رمضان</label>
+    </div>
+
+    <div class="divider"></div>
+
+    <h4 style="margin-bottom:10px;">القيم المخصصة لطريقة الحساب</h4>
+
+    <div class="input-group">
+      <label for="custom-fajr">Fajr custom</label>
+      <input type="text" id="custom-fajr" placeholder="مثال: 18" />
+    </div>
+
+    <div class="input-group">
+      <label for="custom-maghrib">Maghrib custom</label>
+      <input type="text" id="custom-maghrib" placeholder="مثال: sunset أو 4" />
+    </div>
+
+    <div class="input-group">
+      <label for="custom-isha">Isha custom</label>
+      <input type="text" id="custom-isha" placeholder="مثال: 17 أو 90 min" />
+    </div>
+
+    <div class="input-group">
+      <label for="custom-midnight">Midnight custom</label>
+      <select id="custom-midnight">
+        <option value="">Use method default</option>
+        <option value="Standard">Standard</option>
+        <option value="Jafari">Jafari</option>
+      </select>
     </div>
 
     <div class="divider"></div>
@@ -421,6 +469,7 @@
       <div class="offset-box"><label for="offset-asr">العصر</label><input type="number" step="1" id="offset-asr" value="0" /></div>
       <div class="offset-box"><label for="offset-maghrib">المغرب</label><input type="number" step="1" id="offset-maghrib" value="0" /></div>
       <div class="offset-box"><label for="offset-isha">العشاء</label><input type="number" step="1" id="offset-isha" value="0" /></div>
+      <div class="offset-box"><label for="offset-midnight">منتصف الليل</label><input type="number" step="1" id="offset-midnight" value="0" /></div>
     </div>
 
     <div class="divider"></div>
@@ -432,6 +481,18 @@
       <div class="offset-box"><label for="iqamah-asr">Asr</label><input type="text" id="iqamah-asr" placeholder="15:45" /></div>
       <div class="offset-box"><label for="iqamah-maghrib">Maghrib</label><input type="text" id="iqamah-maghrib" placeholder="18:05" /></div>
       <div class="offset-box"><label for="iqamah-isha">Isha</label><input type="text" id="iqamah-isha" placeholder="19:30" /></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="input-group">
+      <label for="theme-select">المظهر</label>
+      <select id="theme-select">
+        <option value="emerald">Emerald Mosque</option>
+        <option value="midnight">Midnight Blue</option>
+        <option value="desert">Desert Gold</option>
+        <option value="sunset">Sunset Glow</option>
+      </select>
     </div>
 
     <div class="divider"></div>
