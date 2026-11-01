@@ -1,15 +1,21 @@
 {
-  "name": "Noor Prayer",
+  "name": "نور الصلاة برو | NoorPrayer Pro",
   "short_name": "NoorPrayer",
-  "start_url": "./",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0f766e",
+  "orientation": "portrait-primary",
+  "background_color": "#f6fffb",
+  "theme_color": "#047857",
+  "description": "مواقيت الصلاة، اتجاه القبلة، الأذكار، التسبيح، ختم القرآن، سجل الصلوات، وحاسبة الزكاة.",
+  "lang": "ar",
+  "dir": "rtl",
   "icons": [
     {
-      "src": "assets/icons/icon-512.png",
+      "src": "./assets/icons/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
