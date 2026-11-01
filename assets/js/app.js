@@ -155,17 +155,98 @@
     }
   }
 
+  function isFirstRun() {
+    try {
+      return localStorage.getItem(window.APP_CONFIG.storageKey) === null;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  let swReloading = false;
+
+  function showUpdateBanner(worker) {
+    const banner = window.DOM.qs("update-banner");
+    if (!banner) return;
+
+    window.DOM.setText("update-banner-text", t("updateAvailable"));
+    window.DOM.show("update-banner");
+
+    const apply = window.DOM.qs("apply-update-btn");
+    const dismiss = window.DOM.qs("dismiss-update-btn");
+    if (apply) apply.onclick = () => worker.postMessage({ type: "SKIP_WAITING" });
+    if (dismiss) dismiss.onclick = () => window.DOM.hide("update-banner");
+  }
+
+  function registerServiceWorker() {
+    if (!("serviceWorker" in navigator)) return;
+
+    const hadController = !!navigator.serviceWorker.controller;
+
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      // Skip the very first install (clients.claim) and only reload once after the user taps "Update".
+      if (!hadController || swReloading) return;
+      swReloading = true;
+      window.location.reload();
+    });
+
+    navigator.serviceWorker
+      .register("./service-worker.js")
+      .then((reg) => {
+        if (reg.waiting && navigator.serviceWorker.controller) {
+          showUpdateBanner(reg.waiting);
+        }
+
+        reg.addEventListener("updatefound", () => {
+          const worker = reg.installing;
+          if (!worker) return;
+          worker.addEventListener("statechange", () => {
+            if (worker.state === "installed" && navigator.serviceWorker.controller) {
+              showUpdateBanner(worker);
+            }
+          });
+        });
+      })
+      .catch(console.error);
+  }
+
+  // Reset the daily trackers and repaint if the app stays open past midnight.
+  function startDayRolloverWatcher() {
+    let lastKey = window.Utils.formatDateKey(new Date());
+
+    const check = () => {
+      const key = window.Utils.formatDateKey(new Date());
+      if (key === lastKey) return;
+      lastKey = key;
+      ensureDailyReset();
+      renderSalahTracker();
+      renderAzkar();
+    };
+
+    setInterval(check, 30000);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) check();
+    });
+  }
+
   function init() {
+    const firstRun = isFirstRun();
+
     window.StorageAPI.loadState();
+
+    if (firstRun) {
+      // Nobody has chosen a location yet: ask GPS instead of silently assuming Riyadh.
+      window.APP_STATE.location.mode = "auto";
+      window.APP_STATE.location.cityName = lang() === "ar" ? "الرياض (افتراضي)" : "Riyadh (default)";
+    }
+
     ensurePrayerConfigBridge();
     ensureDailyReset();
     applyStateToUI();
     bindEvents();
     renderAll();
 
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./service-worker.js").catch(console.error);
-    }
+    registerServiceWorker();
 
     if (window.Qibla?.requestIOSPermissionIfNeeded) {
       window.Qibla.requestIOSPermissionIfNeeded();
@@ -175,6 +256,14 @@
     }
 
     handleOnlineStatus();
+
+    // Honour "Automatic (GPS)" on every launch, not only when the setting is toggled.
+    if (window.APP_STATE.location.mode === "auto") {
+      detectLocation();
+    }
+
+    window.Alerts?.start?.();
+    startDayRolloverWatcher();
   }
 
   function ensureDailyReset() {
@@ -478,12 +567,14 @@
 
     window.DOM.on("zakat-gold-price", "input", (e) => {
       window.APP_STATE.settings.zakat.goldPrice = e.target.value;
-      persistAndRender();
+      window.StorageAPI.saveState();
+      renderZakat();
     });
 
     window.DOM.on("zakat-silver-price", "input", (e) => {
       window.APP_STATE.settings.zakat.silverPrice = e.target.value;
-      persistAndRender();
+      window.StorageAPI.saveState();
+      renderZakat();
     });
 
     ["zakat-cash", "zakat-gold", "zakat-stocks", "zakat-debt", "zakat-hawl"].forEach((id) => {
@@ -492,14 +583,19 @@
     });
 
     window.DOM.on("notif-permission-btn", "click", requestNotificationPermission);
+    window.DOM.on("test-alert-btn", "click", () => window.Alerts?.test?.());
+    window.addEventListener("alerts-changed", renderBadges);
 
     window.DOM.on("notif-enabled", "change", (e) => {
       window.APP_STATE.settings.notifications.enabled = e.target.checked;
+      if (e.target.checked) window.Alerts?.ensurePermission?.();
       persistAndRender();
     });
 
     window.DOM.on("audio-enabled", "change", (e) => {
       window.APP_STATE.settings.notifications.audioEnabled = e.target.checked;
+      // This click is the user gesture that lets the browser play the adhan later.
+      if (e.target.checked) window.Alerts?.unlockAudio?.();
       persistAndRender();
     });
 
@@ -693,15 +789,53 @@
     if (mode === "search" && search) search.classList.remove("hidden");
   }
 
+  function nearestPresetName(lat, lng) {
+    const R = 6371;
+    const rad = (d) => (d * Math.PI) / 180;
+    let best = null;
+
+    window.APP_CONFIG.presetCities.forEach((city) => {
+      const dLat = rad(city.lat - lat);
+      const dLng = rad(city.lng - lng);
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(rad(lat)) * Math.cos(rad(city.lat)) * Math.sin(dLng / 2) ** 2;
+      const km = 2 * R * Math.asin(Math.sqrt(a));
+      if (!best || km < best.km) best = { km, city };
+    });
+
+    if (best && best.km <= 40) {
+      return lang() === "ar" ? best.city.nameAr : best.city.nameEn;
+    }
+    return null;
+  }
+
   function detectLocation() {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) {
+      showApiBanner(lang() === "ar"
+        ? "هذا الجهاز لا يدعم تحديد الموقع GPS."
+        : "This device does not support GPS location.");
+      return;
+    }
+
+    if (window.isSecureContext === false) {
+      showApiBanner(lang() === "ar"
+        ? "تحديد الموقع GPS يتطلب HTTPS. تم الاحتفاظ بالموقع الحالي."
+        : "GPS location requires HTTPS. Current location was kept.");
+      return;
+    }
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
+        // The user may have switched to another location mode while GPS was working.
+        if (window.APP_STATE.location.mode !== "auto") return;
+
         hideApiBanner();
         window.APP_STATE.location.lat = pos.coords.latitude;
         window.APP_STATE.location.lng = pos.coords.longitude;
-        window.APP_STATE.location.cityName = "GPS";
+
+        const near = nearestPresetName(pos.coords.latitude, pos.coords.longitude);
+        window.APP_STATE.location.cityName = near ? `${near} (GPS)` : t("gpsLocation");
 
         if (window.APP_STATE.location.lookupCity) {
           await reverseLookupCurrentLocation();
@@ -713,7 +847,8 @@
         showApiBanner(lang() === "ar"
           ? "تعذر الوصول إلى GPS، تم الاحتفاظ بالموقع الحالي."
           : "Unable to access GPS. Current location was kept.");
-      }
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 10 * 60 * 1000 }
     );
   }
 
@@ -766,6 +901,7 @@
 
   function renderAll() {
     renderLocationLabel();
+    window.Qibla?.update?.();
     renderBadges();
     syncPrayerConfigFromAppState(false);
     window.Prayer?.renderTodayPrayerList?.();
@@ -796,10 +932,17 @@
       "ramadan-badge",
       window.APP_STATE.settings.ramadanMode ? t("ramadanModeBadge") : t("normalMode")
     );
-    window.DOM.setText(
-      "notif-badge",
-      window.APP_STATE.settings.notifications.enabled ? t("notificationsOn") : t("notificationsOff")
-    );
+    const notifState =
+      window.Alerts?.notificationState?.() ||
+      (window.APP_STATE.settings.notifications.enabled ? "on" : "off");
+    const notifKey = {
+      on: "notificationsOn",
+      off: "notificationsOff",
+      blocked: "notificationsBlocked",
+      "needs-permission": "notificationsNeedsPermission",
+      unsupported: "notificationsUnsupported"
+    }[notifState] || "notificationsOff";
+    window.DOM.setText("notif-badge", t(notifKey));
     window.DOM.setText(
       "audio-badge",
       window.APP_STATE.settings.notifications.audioEnabled ? t("adhanAudioOn") : t("adhanAudioOff")
@@ -1004,39 +1147,48 @@
   }
 
   function renderZakat() {
+    const num = (id) => Math.max(0, Number(window.DOM.qs(id)?.value || 0) || 0);
+
     const basis = window.DOM.qs("zakat-basis")?.value || "gold";
-    const goldPrice = Number(window.DOM.qs("zakat-gold-price")?.value || 0);
-    const silverPrice = Number(window.DOM.qs("zakat-silver-price")?.value || 0);
-    const cash = Number(window.DOM.qs("zakat-cash")?.value || 0);
-    const gold = Number(window.DOM.qs("zakat-gold")?.value || 0);
-    const stocks = Number(window.DOM.qs("zakat-stocks")?.value || 0);
-    const debt = Number(window.DOM.qs("zakat-debt")?.value || 0);
+    const isGold = basis === "gold";
+    const price = isGold ? num("zakat-gold-price") : num("zakat-silver-price");
+    const cash = num("zakat-cash");
+    const gold = num("zakat-gold");
+    const stocks = num("zakat-stocks");
+    const debt = num("zakat-debt");
     const hawl = !!window.DOM.qs("zakat-hawl")?.checked;
 
+    const ar = lang() === "ar";
+    const priceMissing = !(price > 0);
     const wealth = Math.max(0, cash + gold + stocks - debt);
-    const nisab = basis === "gold" ? goldPrice * 85 : silverPrice * 595;
-    const eligible = hawl && wealth >= nisab;
+    const nisab = priceMissing ? 0 : price * (isGold ? 85 : 595);
+    const eligible = !priceMissing && hawl && wealth >= nisab;
     const due = eligible ? wealth * 0.025 : 0;
 
     window.DOM.setText(
       "zakat-nisab-label",
-      basis === "gold"
-        ? (lang() === "ar" ? "النصاب (85 غرام ذهب)" : "Nisab (85g gold)")
-        : (lang() === "ar" ? "النصاب (595 غرام فضة)" : "Nisab (595g silver)")
+      isGold
+        ? (ar ? "النصاب (85 غرام ذهب)" : "Nisab (85g gold)")
+        : (ar ? "النصاب (595 غرام فضة)" : "Nisab (595g silver)")
     );
 
-    window.DOM.setText("zakat-nisab-val", window.Utils.formatCurrency(nisab));
+    window.DOM.setText("zakat-nisab-val", priceMissing ? "--" : window.Utils.formatCurrency(nisab));
     window.DOM.setText("zakat-total", window.Utils.formatCurrency(wealth));
     window.DOM.setText("zakat-due", window.Utils.formatCurrency(due));
 
-    window.DOM.setText(
-      "zakat-status-msg",
-      !hawl
-        ? (lang() === "ar" ? "الزكاة لا تُحسب حتى يمر حول قمري كامل." : "Zakat is not due until one lunar year passes.")
-        : wealth < nisab
-          ? (lang() === "ar" ? "المبلغ أقل من النصاب." : "Amount is below nisab.")
-          : (lang() === "ar" ? "بلغ المال النصاب وتحققت الشروط الأساسية." : "Wealth meets nisab and basic conditions.")
-    );
+    let message;
+    if (priceMissing) {
+      message = isGold
+        ? (ar ? "أدخل سعر غرام الذهب اليوم لمعرفة النصاب." : "Enter today's gold price per gram to check nisab.")
+        : (ar ? "أدخل سعر غرام الفضة اليوم لمعرفة النصاب." : "Enter today's silver price per gram to check nisab.");
+    } else if (wealth < nisab) {
+      message = ar ? "المبلغ أقل من النصاب." : "Amount is below nisab.";
+    } else if (!hawl) {
+      message = ar ? "بلغ المال النصاب، لكن لم يمر حول قمري كامل بعد." : "Wealth meets nisab, but one lunar year has not passed yet.";
+    } else {
+      message = ar ? "بلغ المال النصاب وتحققت الشروط الأساسية." : "Wealth meets nisab and basic conditions.";
+    }
+    window.DOM.setText("zakat-status-msg", message);
   }
 
   function renderRecentAndFavorites() {
@@ -1067,6 +1219,7 @@
     Notification.requestPermission().then((permission) => {
       window.DOM.show("notif-banner");
       window.DOM.setText("notif-banner", `${t("permissionStatus")}: ${permission}`);
+      renderBadges();
     });
   }
 
