@@ -558,7 +558,7 @@
 
     const status = window.DOM.qs("city-search-status");
     const results = window.DOM.qs("city-search-results");
-    status.textContent = lang() === "ar" ? "جارٍ البحث..." : "Searching...";
+    status.textContent = t("searching");
     results.innerHTML = "";
 
     try {
@@ -568,9 +568,7 @@
       });
       const data = await res.json();
 
-      status.textContent = data.length
-        ? (lang() === "ar" ? "اختر نتيجة:" : "Choose a result:")
-        : (lang() === "ar" ? "لا توجد نتائج." : "No results.");
+      status.textContent = data.length ? t("chooseResult") : t("noResults");
 
       data.slice(0, 5).forEach((item) => {
         const btn = document.createElement("button");
@@ -589,7 +587,7 @@
       });
     } catch (error) {
       console.error(error);
-      status.textContent = lang() === "ar" ? "حدث خطأ أثناء البحث." : "Search failed.";
+      status.textContent = t("searchFailed");
     }
   }
 
@@ -618,7 +616,12 @@
   function renderLocationLabel() {
     const { cityName, lat, lng } = window.APP_STATE.location;
     const safeName = cityName || t("unknownLocation");
-    window.DOM.setText("location-label", `${safeName} • ${Number(lat).toFixed(2)}, ${Number(lng).toFixed(2)}`);
+    const latText = Number.isFinite(Number(lat)) ? Number(lat).toFixed(2) : "--";
+    const lngText = Number.isFinite(Number(lng)) ? Number(lng).toFixed(2) : "--";
+    const label = `${safeName} • ${latText}, ${lngText}`;
+    const el = window.DOM.qs("location-label");
+    el.textContent = label;
+    el.dataset.locked = "true";
   }
 
   function renderBadges() {
@@ -827,7 +830,12 @@
     const eligible = hawl && wealth >= nisab;
     const due = eligible ? wealth * 0.025 : 0;
 
-    window.DOM.setText("zakat-nisab-label", basis === "gold" ? (lang() === "ar" ? "النصاب (85 غرام ذهب)" : "Nisab (85g gold)") : (lang() === "ar" ? "النصاب (595 غرام فضة)" : "Nisab (595g silver)"));
+    window.DOM.setText(
+      "zakat-nisab-label",
+      basis === "gold"
+        ? (lang() === "ar" ? "النصاب (85 غرام ذهب)" : "Nisab (85g gold)")
+        : (lang() === "ar" ? "النصاب (595 غرام فضة)" : "Nisab (595g silver)")
+    );
     window.DOM.setText("zakat-nisab-val", window.Utils.formatCurrency(nisab));
     window.DOM.setText("zakat-total", window.Utils.formatCurrency(wealth));
     window.DOM.setText("zakat-due", window.Utils.formatCurrency(due));
@@ -866,7 +874,7 @@
     if (!("Notification" in window)) return;
     Notification.requestPermission().then((permission) => {
       window.DOM.show(window.DOM.qs("notif-banner"));
-      window.DOM.setText("notif-banner", `Notification permission: ${permission}`);
+      window.DOM.setText("notif-banner", `${t("permissionStatus")}: ${permission}`);
     });
   }
 
@@ -882,7 +890,7 @@
     try {
       await navigator.clipboard.writeText(text);
       window.DOM.show(window.DOM.qs("backup-banner"));
-      window.DOM.setText("backup-banner", lang() === "ar" ? "تم نسخ النسخة الاحتياطية." : "Backup copied.");
+      window.DOM.setText("backup-banner", t("backupCopied"));
     } catch (_) {}
   }
 
@@ -893,7 +901,7 @@
       applyStateToUI();
       renderAll();
       window.DOM.show(window.DOM.qs("backup-banner"));
-      window.DOM.setText("backup-banner", lang() === "ar" ? "تم استيراد النسخة الاحتياطية." : "Backup imported.");
+      window.DOM.setText("backup-banner", t("backupImported"));
     } catch (error) {
       console.error(error);
     }
