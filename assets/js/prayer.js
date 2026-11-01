@@ -1,6 +1,90 @@
 (function () {
   const prayerKeys = ["fajr", "sunrise", "dhuhr", "asr", "sunset", "maghrib", "isha", "midnight"];
 
+  const DEFAULT_CONFIG = {
+    location: {
+      lat: 24.7136,
+      lng: 46.6753
+    },
+    settings: {
+      calcMethod: "Makkah",
+      asrMethod: "standard",
+      highLatitudeRule: "NightMiddle",
+      midnightMode: "",
+      ramadanMode: false,
+      offsets: {
+        fajr: 0,
+        sunrise: 0,
+        dhuhr: 0,
+        asr: 0,
+        maghrib: 0,
+        isha: 0,
+        midnight: 0
+      },
+      customCalc: {
+        fajr: "",
+        maghrib: "",
+        isha: "",
+        midnight: ""
+      },
+      iqamah: {
+        fajr: "",
+        dhuhr: "",
+        asr: "",
+        maghrib: "",
+        isha: ""
+      }
+    },
+    ui: {
+      currentMonthOffset: 0
+    }
+  };
+
+  function deepMerge(target, source) {
+    const out = Array.isArray(target) ? target.slice() : { ...target };
+    if (!source || typeof source !== "object") return out;
+
+    Object.keys(source).forEach((key) => {
+      const sourceVal = source[key];
+      const targetVal = out[key];
+
+      if (
+        sourceVal &&
+        typeof sourceVal === "object" &&
+        !Array.isArray(sourceVal) &&
+        targetVal &&
+        typeof targetVal === "object" &&
+        !Array.isArray(targetVal)
+      ) {
+        out[key] = deepMerge(targetVal, sourceVal);
+      } else {
+        out[key] = sourceVal;
+      }
+    });
+
+    return out;
+  }
+
+  function loadConfig() {
+    let saved = {};
+    try {
+      const raw = localStorage.getItem("prayerConfig");
+      if (raw) saved = JSON.parse(raw) || {};
+    } catch (_) {}
+
+    const merged = deepMerge(DEFAULT_CONFIG, saved || {});
+    window.PRAYER_CONFIG = merged;
+    return merged;
+  }
+
+  function saveConfig() {
+    try {
+      localStorage.setItem("prayerConfig", JSON.stringify(window.PRAYER_CONFIG));
+    } catch (_) {}
+  }
+
+  loadConfig();
+
   const prayerNames = {
     ar: {
       fajr: "الفجر",
@@ -58,84 +142,19 @@
   };
 
   const METHODS = {
-    MWL: {
-      fajr: 18,
-      isha: 17,
-      maghrib: "sunset",
-      midnight: "Standard"
-    },
-    ISNA: {
-      fajr: 15,
-      isha: 15,
-      maghrib: "sunset",
-      midnight: "Standard"
-    },
-    Egypt: {
-      fajr: 19.5,
-      isha: 17.5,
-      maghrib: "sunset",
-      midnight: "Standard"
-    },
-    Makkah: {
-      fajr: 18.5,
-      isha: "90 min",
-      maghrib: "sunset",
-      midnight: "Standard"
-    },
-    Karachi: {
-      fajr: 18,
-      isha: 18,
-      maghrib: "sunset",
-      midnight: "Standard"
-    },
-    Tehran: {
-      fajr: 17.7,
-      isha: 14,
-      maghrib: 4.5,
-      midnight: "Jafari"
-    },
-    Jafari: {
-      fajr: 16,
-      isha: 14,
-      maghrib: 4,
-      midnight: "Jafari"
-    },
-    Dubai: {
-      fajr: 18.2,
-      isha: 18.2,
-      maghrib: "sunset",
-      midnight: "Standard"
-    },
-    Qatar: {
-      fajr: 18,
-      isha: "90 min",
-      maghrib: "sunset",
-      midnight: "Standard"
-    },
-    Kuwait: {
-      fajr: 18,
-      isha: 17.5,
-      maghrib: "sunset",
-      midnight: "Standard"
-    },
-    Singapore: {
-      fajr: 20,
-      isha: 18,
-      maghrib: "sunset",
-      midnight: "Standard"
-    },
-    Turkey: {
-      fajr: 18,
-      isha: 17,
-      maghrib: "sunset",
-      midnight: "Standard"
-    },
-    Custom: {
-      fajr: 18,
-      isha: 17,
-      maghrib: "sunset",
-      midnight: "Standard"
-    }
+    MWL: { fajr: 18, isha: 17, maghrib: "sunset", midnight: "Standard" },
+    ISNA: { fajr: 15, isha: 15, maghrib: "sunset", midnight: "Standard" },
+    Egypt: { fajr: 19.5, isha: 17.5, maghrib: "sunset", midnight: "Standard" },
+    Makkah: { fajr: 18.5, isha: "90 min", maghrib: "sunset", midnight: "Standard" },
+    Karachi: { fajr: 18, isha: 18, maghrib: "sunset", midnight: "Standard" },
+    Tehran: { fajr: 17.7, isha: 14, maghrib: 4.5, midnight: "Jafari" },
+    Jafari: { fajr: 16, isha: 14, maghrib: 4, midnight: "Jafari" },
+    Dubai: { fajr: 18.2, isha: 18.2, maghrib: "sunset", midnight: "Standard" },
+    Qatar: { fajr: 18, isha: "90 min", maghrib: "sunset", midnight: "Standard" },
+    Kuwait: { fajr: 18, isha: 17.5, maghrib: "sunset", midnight: "Standard" },
+    Singapore: { fajr: 20, isha: 18, maghrib: "sunset", midnight: "Standard" },
+    Turkey: { fajr: 18, isha: 17, maghrib: "sunset", midnight: "Standard" },
+    Custom: { fajr: 18, isha: 17, maghrib: "sunset", midnight: "Standard" }
   };
 
   const monthNames = {
@@ -190,10 +209,6 @@
     return Math.cos(deg2rad(d));
   }
 
-  function tanDeg(d) {
-    return Math.tan(deg2rad(d));
-  }
-
   function arcsinDeg(x) {
     return rad2deg(Math.asin(x));
   }
@@ -202,16 +217,8 @@
     return rad2deg(Math.acos(x));
   }
 
-  function arctanDeg(x) {
-    return rad2deg(Math.atan(x));
-  }
-
   function arctan2Deg(y, x) {
     return rad2deg(Math.atan2(y, x));
-  }
-
-  function arccotDeg(x) {
-    return rad2deg(Math.atan(1 / x));
   }
 
   function fixAngle(a) {
@@ -224,13 +231,25 @@
     return h < 0 ? h + 24 : h;
   }
 
+  function getConfig() {
+    if (!window.PRAYER_CONFIG) {
+      return loadConfig();
+    }
+    return window.PRAYER_CONFIG;
+  }
+
   function getLocation() {
-    const lat = Number(window.APP_STATE?.location?.lat);
-    const lng = Number(window.APP_STATE?.location?.lng);
+    const cfg = getConfig();
+    const lat = Number(cfg?.location?.lat);
+    const lng = Number(cfg?.location?.lng);
     return {
       lat: Number.isFinite(lat) ? lat : 24.7136,
       lng: Number.isFinite(lng) ? lng : 46.6753
     };
+  }
+
+  function getSettings() {
+    return getConfig().settings || DEFAULT_CONFIG.settings;
   }
 
   function getTimeZoneHours(date) {
@@ -322,42 +341,54 @@
   }
 
   function getHighLatitudeMode() {
-    return window.APP_STATE?.settings?.highLatitudeRule || "NightMiddle";
+    return getSettings().highLatitudeRule || "NightMiddle";
   }
 
   function getMidnightMode(methodParams) {
-    if (window.APP_STATE?.settings?.midnightMode) {
-      return window.APP_STATE.settings.midnightMode;
-    }
+    const mode = getSettings().midnightMode;
+    if (mode) return mode;
     return methodParams.midnight || "Standard";
   }
 
   function safeOffset(key) {
-    const n = Number(window.APP_STATE?.settings?.offsets?.[key] || 0);
+    const n = Number(getSettings()?.offsets?.[key] || 0);
     return Number.isFinite(n) ? n : 0;
   }
 
   function getBaseMethodName() {
-    return window.APP_STATE?.settings?.calcMethod || "Makkah";
+    return getSettings().calcMethod || "Makkah";
+  }
+
+  function parseCustomValue(value, fallback) {
+    if (value == null || value === "") return fallback;
+    if (typeof value === "number") return value;
+
+    const str = String(value).trim();
+
+    if (/^\d+(\.\d+)?$/.test(str)) return Number(str);
+    if (/^\d+\s*min$/i.test(str)) return str.replace(/\s+/g, " ");
+    if (str.toLowerCase() === "sunset") return "sunset";
+    if (str === "Standard" || str === "Jafari") return str;
+
+    return fallback;
   }
 
   function parseMethodParams() {
     const methodName = getBaseMethodName();
     const base = METHODS[methodName] || METHODS.Makkah;
-
-    const custom = window.APP_STATE?.settings?.customCalc || {};
+    const custom = getSettings().customCalc || {};
 
     return {
       methodName,
-      fajr: custom.fajr ?? base.fajr,
-      isha: custom.isha ?? base.isha,
-      maghrib: custom.maghrib ?? base.maghrib,
-      midnight: custom.midnight ?? base.midnight
+      fajr: parseCustomValue(custom.fajr, base.fajr),
+      isha: parseCustomValue(custom.isha, base.isha),
+      maghrib: parseCustomValue(custom.maghrib, base.maghrib),
+      midnight: parseCustomValue(custom.midnight, base.midnight)
     };
   }
 
   function isRamadanMode() {
-    return !!window.APP_STATE?.settings?.ramadanMode;
+    return !!getSettings().ramadanMode;
   }
 
   function resolveFixedMinutes(value, prayerName) {
@@ -402,17 +433,27 @@
     return adjusted;
   }
 
+  function computeRawFajrOnly(date, lat, lng) {
+    const params = parseMethodParams();
+    if (typeof params.fajr !== "number") return null;
+    const timeZone = getTimeZoneHours(date);
+    const jd = getJulianDate(date);
+    const fajrH = timeForAngle(params.fajr, jd, lat, lng, timeZone, "ccw");
+    return hoursToDate(date, fajrH);
+  }
+
   function computeRawTimes(dateInput) {
     const date = new Date(dateInput);
     const { lat, lng } = getLocation();
     const timeZone = getTimeZoneHours(date);
     const jd = getJulianDate(date);
     const params = parseMethodParams();
+    const settings = getSettings();
 
     const dhuhrH = midDay(jd, timeZone, lng);
     const sunriseH = timeForAngle(0.833, jd, lat, lng, timeZone, "ccw");
     const sunsetH = timeForAngle(0.833, jd, lat, lng, timeZone, "cw");
-    const asrStep = window.APP_STATE?.settings?.asrMethod === "hanafi" ? 2 : 1;
+    const asrStep = settings.asrMethod === "hanafi" ? 2 : 1;
     const asrH = asrTime(asrStep, jd, lat, lng, timeZone);
 
     const fajrH = typeof params.fajr === "number"
@@ -450,10 +491,10 @@
     }
 
     const nextDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
-    const prevDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1);
-
-    const nextSunrise = hoursToDate(nextDate, timeForAngle(0.833, getJulianDate(nextDate), lat, lng, getTimeZoneHours(nextDate), "ccw"));
-    const prevSunset = hoursToDate(prevDate, timeForAngle(0.833, getJulianDate(prevDate), lat, lng, getTimeZoneHours(prevDate), "cw"));
+    const nextSunrise = hoursToDate(
+      nextDate,
+      timeForAngle(0.833, getJulianDate(nextDate), lat, lng, getTimeZoneHours(nextDate), "ccw")
+    );
 
     if (times.sunset && nextSunrise) {
       const nightHours = differenceHours(nextSunrise, times.sunset) < 0
@@ -477,29 +518,20 @@
     if (times.sunset) {
       if (getMidnightMode(params) === "Jafari") {
         const nextFajrRaw = computeRawFajrOnly(nextDate, lat, lng);
-        if (times.sunset && nextFajrRaw) {
-          midnight = new Date(times.sunset.getTime() + (nextFajrRaw.getTime() - times.sunset.getTime()) / 2);
-        }
-      } else {
-        if (times.sunset && nextSunrise) {
-          let end = nextSunrise;
+        if (nextFajrRaw) {
+          let end = nextFajrRaw;
           if (end <= times.sunset) end = addMinutes(end, 24 * 60);
           midnight = new Date(times.sunset.getTime() + (end.getTime() - times.sunset.getTime()) / 2);
         }
+      } else if (nextSunrise) {
+        let end = nextSunrise;
+        if (end <= times.sunset) end = addMinutes(end, 24 * 60);
+        midnight = new Date(times.sunset.getTime() + (end.getTime() - times.sunset.getTime()) / 2);
       }
     }
 
     times.midnight = midnight;
     return applyOffsets(times);
-  }
-
-  function computeRawFajrOnly(date, lat, lng) {
-    const params = parseMethodParams();
-    if (typeof params.fajr !== "number") return null;
-    const timeZone = getTimeZoneHours(date);
-    const jd = getJulianDate(date);
-    const fajrH = timeForAngle(params.fajr, jd, lat, lng, timeZone, "ccw");
-    return hoursToDate(date, fajrH);
   }
 
   function buildPrayerTimes(dateInput) {
@@ -531,13 +563,13 @@
   }
 
   function getMonthDateFromOffset() {
-    const offset = Number(window.APP_STATE?.ui?.currentMonthOffset || 0);
+    const offset = Number(getConfig()?.ui?.currentMonthOffset || 0);
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth() + offset, 1);
   }
 
   function getIqamahLabel(key) {
-    const raw = window.APP_STATE?.settings?.iqamah?.[key];
+    const raw = getSettings()?.iqamah?.[key];
     if (!raw) return t("iqamahDisabled", "غير مفعلة", "Disabled");
     return raw;
   }
@@ -569,8 +601,9 @@
     const asrChip = document.getElementById("asr-chip");
     const iqamahChip = document.getElementById("iqamah-chip");
 
+    const settings = getSettings();
     const method = getBaseMethodName();
-    const asrMode = window.APP_STATE?.settings?.asrMethod === "hanafi"
+    const asrMode = settings.asrMethod === "hanafi"
       ? t("hanafi", "حنفي", "Hanafi")
       : t("standard", "قياسي", "Standard");
 
@@ -590,7 +623,7 @@
 
     if (iqamahChip) {
       const enabled = ["fajr", "dhuhr", "asr", "maghrib", "isha"].some(
-        (k) => (window.APP_STATE?.settings?.iqamah?.[k] || "").trim()
+        (k) => (settings?.iqamah?.[k] || "").trim()
       );
       iqamahChip.textContent =
         lang() === "en"
@@ -714,7 +747,7 @@
 
       const iqamahSummary = ["fajr", "dhuhr", "asr", "maghrib", "isha"]
         .map((key) => {
-          const val = window.APP_STATE?.settings?.iqamah?.[key];
+          const val = getSettings()?.iqamah?.[key];
           if (!val) return null;
           return `${prayerLabel(key)} ${val}`;
         })
@@ -755,7 +788,7 @@
 
       const iqamahSummary = ["fajr", "dhuhr", "asr", "maghrib", "isha"]
         .map((key) => {
-          const val = window.APP_STATE?.settings?.iqamah?.[key];
+          const val = getSettings()?.iqamah?.[key];
           if (!val) return null;
           return `${prayerLabel(key)} ${val}`;
         })
@@ -786,7 +819,51 @@
 
     if (window.Utils?.downloadText) {
       window.Utils.downloadText(filename, csv, "text/csv;charset=utf-8");
+    } else {
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
     }
+  }
+
+  function updateConfig(patch) {
+    window.PRAYER_CONFIG = deepMerge(getConfig(), patch || {});
+    saveConfig();
+    return window.PRAYER_CONFIG;
+  }
+
+  function setCalculationSettings(newSettings) {
+    updateConfig({
+      settings: newSettings || {}
+    });
+    renderTodayPrayerList();
+    renderMonthTable();
+  }
+
+  function setLocation(lat, lng) {
+    updateConfig({
+      location: {
+        lat: Number(lat),
+        lng: Number(lng)
+      }
+    });
+    renderTodayPrayerList();
+    renderMonthTable();
+  }
+
+  function setMonthOffset(offset) {
+    updateConfig({
+      ui: {
+        currentMonthOffset: Number(offset) || 0
+      }
+    });
+    renderMonthTable();
   }
 
   window.Prayer = {
@@ -796,6 +873,12 @@
     buildPrayerTimes,
     renderTodayPrayerList,
     renderMonthTable,
-    exportMonthCSV
+    exportMonthCSV,
+    getConfig,
+    saveConfig,
+    updateConfig,
+    setCalculationSettings,
+    setLocation,
+    setMonthOffset
   };
 })();
