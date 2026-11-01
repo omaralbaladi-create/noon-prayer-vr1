@@ -1,4 +1,13 @@
 (function () {
+  function t(key, fallbackAr, fallbackEn) {
+    if (window.I18N && typeof window.I18N.t === "function") {
+      const value = window.I18N.t(key);
+      if (value && value !== key) return value;
+    }
+    const isEn = document.documentElement.lang === "en";
+    return isEn ? fallbackEn : fallbackAr;
+  }
+
   function toRadians(deg) {
     return deg * Math.PI / 180;
   }
@@ -11,7 +20,13 @@
     return (deg + 360) % 360;
   }
 
+  function hasValidCoordinates(lat, lng) {
+    return Number.isFinite(Number(lat)) && Number.isFinite(Number(lng));
+  }
+
   function getQiblaBearing(lat, lng) {
+    if (!hasValidCoordinates(lat, lng)) return null;
+
     const meccaLat = toRadians(window.APP_CONFIG.mecca.lat);
     const meccaLng = toRadians(window.APP_CONFIG.mecca.lng);
     const userLat = toRadians(lat);
@@ -25,8 +40,33 @@
     return normalizeDegrees(toDegrees(Math.atan2(y, x)));
   }
 
+  function setBearingText(bearing) {
+    const bearingText = document.getElementById("qibla-bearing-text");
+    if (!bearingText) return;
+
+    if (bearing == null) {
+      bearingText.textContent = t(
+        "qiblaBearingUnavailable",
+        "زاوية القبلة: غير متاحة",
+        "Qibla bearing: unavailable"
+      );
+      return;
+    }
+
+    bearingText.textContent =
+      document.documentElement.lang === "en"
+        ? `Qibla bearing: ${Math.round(bearing)}°`
+        : `زاوية القبلة: ${Math.round(bearing)}°`;
+  }
+
+  function setStatus(message) {
+    const status = document.getElementById("haptic-status");
+    if (status) status.textContent = message;
+  }
+
   function requestIOSPermissionIfNeeded() {
     const btn = document.getElementById("ios-permission-btn");
+    if (!btn) return;
 
     if (
       typeof DeviceOrientationEvent !== "undefined" &&
@@ -39,9 +79,24 @@
           if (result === "granted") {
             btn.classList.add("hidden");
             startCompass();
+          } else {
+            setStatus(
+              t(
+                "compassPermissionDenied",
+                "تم رفض إذن البوصلة.",
+                "Compass permission was denied."
+              )
+            );
           }
         } catch (error) {
           console.error("Compass permission denied:", error);
+          setStatus(
+            t(
+              "compassPermissionDenied",
+              "تم رفض إذن البوصلة.",
+              "Compass permission was denied."
+            )
+          );
         }
       };
     }
@@ -50,24 +105,33 @@
   function startCompass() {
     const rose = document.getElementById("compass-rose");
     const needle = document.getElementById("compass-needle");
-    const status = document.getElementById("haptic-status");
-    const bearingText = document.getElementById("qibla-bearing-text");
 
-    if (!rose || !needle || !status || !bearingText) return;
+    if (!rose || !needle) return;
 
-    const bearing = getQiblaBearing(
-      window.APP_STATE.location.lat,
-      window.APP_STATE.location.lng
-    );
+    const lat = window.APP_STATE?.location?.lat;
+    const lng = window.APP_STATE?.location?.lng;
+    const bearing = getQiblaBearing(lat, lng);
 
-    bearingText.textContent =
-      document.documentElement.lang === "en"
-        ? `Qibla bearing: ${Math.round(bearing)}°`
-        : `زاوية القبلة: ${Math.round(bearing)}°`;
+    setBearingText(bearing);
 
-    function updateStatus(message) {
-      status.textContent = message;
+    if (bearing == null) {
+      setStatus(
+        t(
+          "qiblaLocationRequired",
+          "يلزم تحديد موقع صحيح لحساب اتجاه القبلة.",
+          "A valid location is required to calculate the Qibla direction."
+        )
+      );
+      return;
     }
+
+    setStatus(
+      t(
+        "compassCalibrating",
+        "جارٍ معايرة البوصلة...",
+        "Calibrating compass..."
+      )
+    );
 
     function handle(event) {
       let heading = null;
@@ -79,10 +143,12 @@
       }
 
       if (heading == null || Number.isNaN(heading)) {
-        updateStatus(
-          document.documentElement.lang === "en"
-            ? "Compass data is unavailable on this device."
-            : "تعذر قراءة البوصلة من هذا الجهاز."
+        setStatus(
+          t(
+            "compassUnavailable",
+            "تعذر قراءة البوصلة من هذا الجهاز.",
+            "Compass data is unavailable on this device."
+          )
         );
         return;
       }
@@ -95,14 +161,16 @@
       const diff = Math.abs(((heading - bearing + 540) % 360) - 180);
 
       if (diff < 8) {
-        updateStatus(
-          document.documentElement.lang === "en"
-            ? "You are very close to the Qibla direction."
-            : "أنت قريب جدًا من اتجاه القبلة."
+        setStatus(
+          t(
+            "qiblaVeryClose",
+            "أنت قريب جدًا من اتجاه القبلة.",
+            "You are very close to the Qibla direction."
+          )
         );
         if (navigator.vibrate) navigator.vibrate(60);
       } else {
-        updateStatus(
+        setStatus(
           document.documentElement.lang === "en"
             ? `Approx. deviation: ${Math.round(diff)}°`
             : `انحراف تقريبي: ${Math.round(diff)}°`
