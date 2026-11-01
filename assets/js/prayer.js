@@ -1,5 +1,5 @@
 (function () {
-  const prayerKeys = ["fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha"];
+  const prayerKeys = ["fajr", "sunrise", "dhuhr", "asr", "sunset", "maghrib", "isha", "midnight"];
 
   const prayerNames = {
     ar: {
@@ -7,42 +7,135 @@
       sunrise: "الشروق",
       dhuhr: "الظهر",
       asr: "العصر",
+      sunset: "الغروب",
       maghrib: "المغرب",
-      isha: "العشاء"
+      isha: "العشاء",
+      midnight: "منتصف الليل"
     },
     en: {
       fajr: "Fajr",
       sunrise: "Sunrise",
       dhuhr: "Dhuhr",
       asr: "Asr",
+      sunset: "Sunset",
       maghrib: "Maghrib",
-      isha: "Isha"
+      isha: "Isha",
+      midnight: "Midnight"
     }
   };
 
   const calcMethodLabels = {
     ar: {
-      UmmAlQura: "أم القرى",
-      MuslimWorldLeague: "رابطة العالم الإسلامي",
-      NorthAmerica: "أمريكا الشمالية",
+      MWL: "رابطة العالم الإسلامي",
+      ISNA: "أمريكا الشمالية",
+      Egypt: "الهيئة المصرية",
+      Makkah: "أم القرى",
+      Karachi: "كراتشي",
+      Tehran: "طهران",
+      Jafari: "الجعفري",
       Dubai: "دبي",
-      Qatar: "قطر"
+      Qatar: "قطر",
+      Kuwait: "الكويت",
+      Singapore: "سنغافورة",
+      Turkey: "تركيا",
+      Custom: "مخصص"
     },
     en: {
-      UmmAlQura: "Umm Al-Qura",
-      MuslimWorldLeague: "Muslim World League",
-      NorthAmerica: "North America",
+      MWL: "Muslim World League",
+      ISNA: "Islamic Society of North America",
+      Egypt: "Egyptian General Authority of Survey",
+      Makkah: "Umm al-Qura, Makkah",
+      Karachi: "University of Islamic Sciences, Karachi",
+      Tehran: "Institute of Geophysics, University of Tehran",
+      Jafari: "Jafari",
       Dubai: "Dubai",
-      Qatar: "Qatar"
+      Qatar: "Qatar",
+      Kuwait: "Kuwait",
+      Singapore: "Singapore",
+      Turkey: "Turkey",
+      Custom: "Custom"
     }
   };
 
-  const methodParams = {
-    UmmAlQura: { fajrAngle: 18.5, ishaMinutesAfterMaghrib: "ramadanAware" },
-    MuslimWorldLeague: { fajrAngle: 18, ishaAngle: 17 },
-    NorthAmerica: { fajrAngle: 15, ishaAngle: 15 },
-    Dubai: { fajrAngle: 18.2, ishaAngle: 18.2 },
-    Qatar: { fajrAngle: 18, ishaMinutesAfterMaghrib: 90 }
+  const METHODS = {
+    MWL: {
+      fajr: 18,
+      isha: 17,
+      maghrib: "sunset",
+      midnight: "Standard"
+    },
+    ISNA: {
+      fajr: 15,
+      isha: 15,
+      maghrib: "sunset",
+      midnight: "Standard"
+    },
+    Egypt: {
+      fajr: 19.5,
+      isha: 17.5,
+      maghrib: "sunset",
+      midnight: "Standard"
+    },
+    Makkah: {
+      fajr: 18.5,
+      isha: "90 min",
+      maghrib: "sunset",
+      midnight: "Standard"
+    },
+    Karachi: {
+      fajr: 18,
+      isha: 18,
+      maghrib: "sunset",
+      midnight: "Standard"
+    },
+    Tehran: {
+      fajr: 17.7,
+      isha: 14,
+      maghrib: 4.5,
+      midnight: "Jafari"
+    },
+    Jafari: {
+      fajr: 16,
+      isha: 14,
+      maghrib: 4,
+      midnight: "Jafari"
+    },
+    Dubai: {
+      fajr: 18.2,
+      isha: 18.2,
+      maghrib: "sunset",
+      midnight: "Standard"
+    },
+    Qatar: {
+      fajr: 18,
+      isha: "90 min",
+      maghrib: "sunset",
+      midnight: "Standard"
+    },
+    Kuwait: {
+      fajr: 18,
+      isha: 17.5,
+      maghrib: "sunset",
+      midnight: "Standard"
+    },
+    Singapore: {
+      fajr: 20,
+      isha: 18,
+      maghrib: "sunset",
+      midnight: "Standard"
+    },
+    Turkey: {
+      fajr: 18,
+      isha: 17,
+      maghrib: "sunset",
+      midnight: "Standard"
+    },
+    Custom: {
+      fajr: 18,
+      isha: 17,
+      maghrib: "sunset",
+      midnight: "Standard"
+    }
   };
 
   const monthNames = {
@@ -81,12 +174,6 @@
     return calcMethodLabels[lang()]?.[method] || method;
   }
 
-  function getAsrLabel() {
-    return window.APP_STATE?.settings?.asrMethod === "hanafi"
-      ? t("hanafi", "حنفي", "Hanafi")
-      : t("standard", "قياسي", "Standard");
-  }
-
   function deg2rad(d) {
     return (d * Math.PI) / 180;
   }
@@ -121,6 +208,10 @@
 
   function arctan2Deg(y, x) {
     return rad2deg(Math.atan2(y, x));
+  }
+
+  function arccotDeg(x) {
+    return rad2deg(Math.atan(1 / x));
   }
 
   function fixAngle(a) {
@@ -185,39 +276,34 @@
     return fixHour(12 + timeZone - lng / 15 - sp.equation);
   }
 
-  function timeForSolarAngle(angleBelowHorizon, jd, lat, lng, timeZone, direction) {
+  function timeForAngle(angleBelowHorizon, jd, lat, lng, timeZone, direction) {
     const sp = sunPosition(jd);
-    const noon = midDay(jd, timeZone, lng);
     const decl = sp.declination;
+    const noon = midDay(jd, timeZone, lng);
 
-    const term1 = -sinDeg(angleBelowHorizon) - sinDeg(decl) * sinDeg(lat);
-    const term2 = cosDeg(decl) * cosDeg(lat);
-    const ratio = term1 / term2;
+    const numerator = -sinDeg(angleBelowHorizon) - sinDeg(decl) * sinDeg(lat);
+    const denominator = cosDeg(decl) * cosDeg(lat);
+    const ratio = numerator / denominator;
 
     if (ratio < -1 || ratio > 1) return null;
 
-    const t = arccosDeg(ratio) / 15;
-    return noon + (direction === "ccw" ? -t : t);
+    const delta = arccosDeg(ratio) / 15;
+    return noon + (direction === "ccw" ? -delta : delta);
+  }
+
+  function asrAngle(step, lat, decl) {
+    return -rad2deg(Math.atan(1 / (step + Math.tan(Math.abs(deg2rad(lat - decl))))));
   }
 
   function asrTime(step, jd, lat, lng, timeZone) {
-    const sp = sunPosition(jd);
-    const decl = sp.declination;
-    const angle = -arccosForAsr(step, lat, decl);
-    return timeForSolarAngle(angle, jd, lat, lng, timeZone, "cw");
-  }
-
-  function arccosForAsr(step, lat, decl) {
-    const g = -arctanDeg(1 / (step + tanDeg(Math.abs(lat - decl))));
-    return g;
+    const decl = sunPosition(jd).declination;
+    return timeForAngle(asrAngle(step, lat, decl), jd, lat, lng, timeZone, "cw");
   }
 
   function hoursToDate(baseDate, hours) {
     if (hours == null || !Number.isFinite(hours)) return null;
-    const h = fixHour(hours);
-    const totalMinutes = Math.round(h * 60);
     const date = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), 0, 0, 0, 0);
-    date.setMinutes(totalMinutes);
+    date.setMinutes(Math.round(fixHour(hours) * 60));
     return date;
   }
 
@@ -225,64 +311,199 @@
     return new Date(date.getTime() + minutes * 60000);
   }
 
+  function differenceHours(later, earlier) {
+    return (later.getTime() - earlier.getTime()) / 3600000;
+  }
+
+  function nightPortion(angle, nightHours, mode) {
+    if (mode === "AngleBased") return (angle / 60) * nightHours;
+    if (mode === "OneSeventh") return nightHours / 7;
+    return nightHours / 2;
+  }
+
+  function getHighLatitudeMode() {
+    return window.APP_STATE?.settings?.highLatitudeRule || "NightMiddle";
+  }
+
+  function getMidnightMode(methodParams) {
+    if (window.APP_STATE?.settings?.midnightMode) {
+      return window.APP_STATE.settings.midnightMode;
+    }
+    return methodParams.midnight || "Standard";
+  }
+
   function safeOffset(key) {
     const n = Number(window.APP_STATE?.settings?.offsets?.[key] || 0);
     return Number.isFinite(n) ? n : 0;
+  }
+
+  function getBaseMethodName() {
+    return window.APP_STATE?.settings?.calcMethod || "Makkah";
+  }
+
+  function parseMethodParams() {
+    const methodName = getBaseMethodName();
+    const base = METHODS[methodName] || METHODS.Makkah;
+
+    const custom = window.APP_STATE?.settings?.customCalc || {};
+
+    return {
+      methodName,
+      fajr: custom.fajr ?? base.fajr,
+      isha: custom.isha ?? base.isha,
+      maghrib: custom.maghrib ?? base.maghrib,
+      midnight: custom.midnight ?? base.midnight
+    };
   }
 
   function isRamadanMode() {
     return !!window.APP_STATE?.settings?.ramadanMode;
   }
 
-  function getMethodParams() {
-    const method = window.APP_STATE?.settings?.calcMethod || "UmmAlQura";
-    return methodParams[method] || methodParams.UmmAlQura;
+  function resolveFixedMinutes(value, prayerName) {
+    if (typeof value === "number") return null;
+    if (typeof value !== "string") return null;
+
+    if (value === "90 min") {
+      if (prayerName === "isha" && getBaseMethodName() === "Makkah") {
+        return isRamadanMode() ? 120 : 90;
+      }
+      return 90;
+    }
+
+    const match = value.match(/^(\d+)\s*min$/i);
+    if (match) return Number(match[1]);
+
+    return null;
   }
 
-  function buildPrayerTimes(dateInput) {
+  function adjustHighLatTime(target, base, angle, nightHours, direction) {
+    if (!base) return target;
+    const mode = getHighLatitudeMode();
+    const limit = nightPortion(angle, nightHours, mode);
+
+    if (target == null) {
+      return direction === "ccw" ? addMinutes(base, -limit * 60) : addMinutes(base, limit * 60);
+    }
+
+    const diff = Math.abs(differenceHours(target, base));
+    if (diff > limit) {
+      return direction === "ccw" ? addMinutes(base, -limit * 60) : addMinutes(base, limit * 60);
+    }
+
+    return target;
+  }
+
+  function applyOffsets(times) {
+    const adjusted = {};
+    Object.keys(times).forEach((key) => {
+      adjusted[key] = times[key] ? addMinutes(times[key], safeOffset(key)) : null;
+    });
+    return adjusted;
+  }
+
+  function computeRawTimes(dateInput) {
     const date = new Date(dateInput);
     const { lat, lng } = getLocation();
     const timeZone = getTimeZoneHours(date);
     const jd = getJulianDate(date);
-
-    const params = getMethodParams();
+    const params = parseMethodParams();
 
     const dhuhrH = midDay(jd, timeZone, lng);
-    const sunriseH = timeForSolarAngle(0.833, jd, lat, lng, timeZone, "ccw");
-    const sunsetH = timeForSolarAngle(0.833, jd, lat, lng, timeZone, "cw");
-    const fajrH = timeForSolarAngle(params.fajrAngle, jd, lat, lng, timeZone, "ccw");
-    const asrFactor = window.APP_STATE?.settings?.asrMethod === "hanafi" ? 2 : 1;
-    const asrH = asrTime(asrFactor, jd, lat, lng, timeZone);
+    const sunriseH = timeForAngle(0.833, jd, lat, lng, timeZone, "ccw");
+    const sunsetH = timeForAngle(0.833, jd, lat, lng, timeZone, "cw");
+    const asrStep = window.APP_STATE?.settings?.asrMethod === "hanafi" ? 2 : 1;
+    const asrH = asrTime(asrStep, jd, lat, lng, timeZone);
 
-    let ishaH = null;
-    if (typeof params.ishaAngle === "number") {
-      ishaH = timeForSolarAngle(params.ishaAngle, jd, lat, lng, timeZone, "cw");
+    const fajrH = typeof params.fajr === "number"
+      ? timeForAngle(params.fajr, jd, lat, lng, timeZone, "ccw")
+      : null;
+
+    let maghribH = sunsetH;
+    if (typeof params.maghrib === "number") {
+      maghribH = timeForAngle(params.maghrib, jd, lat, lng, timeZone, "cw");
     }
 
-    const times = {
+    let ishaH = null;
+    if (typeof params.isha === "number") {
+      ishaH = timeForAngle(params.isha, jd, lat, lng, timeZone, "cw");
+    }
+
+    let times = {
       fajr: hoursToDate(date, fajrH),
       sunrise: hoursToDate(date, sunriseH),
       dhuhr: hoursToDate(date, dhuhrH),
       asr: hoursToDate(date, asrH),
-      maghrib: hoursToDate(date, sunsetH),
+      sunset: hoursToDate(date, sunsetH),
+      maghrib: hoursToDate(date, maghribH),
       isha: hoursToDate(date, ishaH)
     };
 
-    if (params.ishaMinutesAfterMaghrib && times.maghrib) {
-      let mins = params.ishaMinutesAfterMaghrib;
-      if (mins === "ramadanAware") {
-        mins = isRamadanMode() ? 120 : 90;
-      }
-      times.isha = addMinutes(times.maghrib, mins);
+    const ishaFixed = resolveFixedMinutes(params.isha, "isha");
+    if (ishaFixed != null && times.maghrib) {
+      times.isha = addMinutes(times.maghrib, ishaFixed);
     }
 
-    Object.keys(times).forEach((key) => {
-      if (times[key]) {
-        times[key] = addMinutes(times[key], safeOffset(key));
-      }
-    });
+    const maghribFixed = resolveFixedMinutes(params.maghrib, "maghrib");
+    if (maghribFixed != null && times.sunset) {
+      times.maghrib = addMinutes(times.sunset, maghribFixed);
+    }
 
-    return times;
+    const nextDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+    const prevDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1);
+
+    const nextSunrise = hoursToDate(nextDate, timeForAngle(0.833, getJulianDate(nextDate), lat, lng, getTimeZoneHours(nextDate), "ccw"));
+    const prevSunset = hoursToDate(prevDate, timeForAngle(0.833, getJulianDate(prevDate), lat, lng, getTimeZoneHours(prevDate), "cw"));
+
+    if (times.sunset && nextSunrise) {
+      const nightHours = differenceHours(nextSunrise, times.sunset) < 0
+        ? differenceHours(addMinutes(nextSunrise, 24 * 60), times.sunset)
+        : differenceHours(nextSunrise, times.sunset);
+
+      if (typeof params.fajr === "number" && times.sunrise) {
+        times.fajr = adjustHighLatTime(times.fajr, times.sunrise, params.fajr, nightHours, "ccw");
+      }
+
+      if (typeof params.isha === "number" && times.sunset) {
+        times.isha = adjustHighLatTime(times.isha, times.sunset, params.isha, nightHours, "cw");
+      }
+
+      if (typeof params.maghrib === "number" && times.sunset) {
+        times.maghrib = adjustHighLatTime(times.maghrib, times.sunset, params.maghrib, nightHours, "cw");
+      }
+    }
+
+    let midnight = null;
+    if (times.sunset) {
+      if (getMidnightMode(params) === "Jafari") {
+        const nextFajrRaw = computeRawFajrOnly(nextDate, lat, lng);
+        if (times.sunset && nextFajrRaw) {
+          midnight = new Date(times.sunset.getTime() + (nextFajrRaw.getTime() - times.sunset.getTime()) / 2);
+        }
+      } else {
+        if (times.sunset && nextSunrise) {
+          let end = nextSunrise;
+          if (end <= times.sunset) end = addMinutes(end, 24 * 60);
+          midnight = new Date(times.sunset.getTime() + (end.getTime() - times.sunset.getTime()) / 2);
+        }
+      }
+    }
+
+    times.midnight = midnight;
+    return applyOffsets(times);
+  }
+
+  function computeRawFajrOnly(date, lat, lng) {
+    const params = parseMethodParams();
+    if (typeof params.fajr !== "number") return null;
+    const timeZone = getTimeZoneHours(date);
+    const jd = getJulianDate(date);
+    const fajrH = timeForAngle(params.fajr, jd, lat, lng, timeZone, "ccw");
+    return hoursToDate(date, fajrH);
+  }
+
+  function buildPrayerTimes(dateInput) {
+    return computeRawTimes(dateInput);
   }
 
   function formatTime(date) {
@@ -322,7 +543,8 @@
   }
 
   function getUpcomingPrayer(now, times) {
-    for (const key of prayerKeys) {
+    const ordered = ["fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha"];
+    for (const key of ordered) {
       const val = times[key];
       if (val && val > now) {
         return { key, time: val };
@@ -347,18 +569,23 @@
     const asrChip = document.getElementById("asr-chip");
     const iqamahChip = document.getElementById("iqamah-chip");
 
+    const method = getBaseMethodName();
+    const asrMode = window.APP_STATE?.settings?.asrMethod === "hanafi"
+      ? t("hanafi", "حنفي", "Hanafi")
+      : t("standard", "قياسي", "Standard");
+
     if (methodChip) {
       methodChip.textContent =
         lang() === "en"
-          ? `Method: ${getCalcMethodLabel(window.APP_STATE?.settings?.calcMethod || "UmmAlQura")}`
-          : `الطريقة: ${getCalcMethodLabel(window.APP_STATE?.settings?.calcMethod || "UmmAlQura")}`;
+          ? `Method: ${getCalcMethodLabel(method)}`
+          : `الطريقة: ${getCalcMethodLabel(method)}`;
     }
 
     if (asrChip) {
       asrChip.textContent =
         lang() === "en"
-          ? `Asr: ${getAsrLabel()}`
-          : `العصر: ${getAsrLabel()}`;
+          ? `Asr: ${asrMode}`
+          : `العصر: ${asrMode}`;
     }
 
     if (iqamahChip) {
@@ -414,7 +641,7 @@
 
     list.innerHTML = "";
 
-    prayerKeys.forEach((key) => {
+    ["fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha"].forEach((key) => {
       const row = document.createElement("div");
       row.className = "prayer-row";
 
@@ -485,8 +712,6 @@
       const date = new Date(year, month, day);
       const times = buildPrayerTimes(date);
 
-      const tr = document.createElement("tr");
-
       const iqamahSummary = ["fajr", "dhuhr", "asr", "maghrib", "isha"]
         .map((key) => {
           const val = window.APP_STATE?.settings?.iqamah?.[key];
@@ -496,6 +721,7 @@
         .filter(Boolean)
         .join(" • ");
 
+      const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${formatDateLabel(date)}</td>
         <td>${formatTime(times.fajr)}</td>
@@ -506,7 +732,6 @@
         <td>${formatTime(times.isha)}</td>
         <td>${iqamahSummary || "-"}</td>
       `;
-
       body.appendChild(tr);
     }
   }
@@ -565,6 +790,7 @@
   }
 
   window.Prayer = {
+    METHODS,
     prayerNames,
     prayerLabel,
     buildPrayerTimes,
