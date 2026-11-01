@@ -149,11 +149,11 @@
     Karachi: { fajr: 18, isha: 18, maghrib: "sunset", midnight: "Standard" },
     Tehran: { fajr: 17.7, isha: 14, maghrib: 4.5, midnight: "Jafari" },
     Jafari: { fajr: 16, isha: 14, maghrib: 4, midnight: "Jafari" },
-    Dubai: { fajr: 18.2, isha: 18.2, maghrib: "sunset", midnight: "Standard" },
+    Dubai: { fajr: 18.2, isha: 18.2, maghrib: "sunset", midnight: "Standard", adjust: { sunrise: -3, dhuhr: 3, asr: 3, maghrib: 3 } },
     Qatar: { fajr: 18, isha: "90 min", maghrib: "sunset", midnight: "Standard" },
     Kuwait: { fajr: 18, isha: 17.5, maghrib: "sunset", midnight: "Standard" },
-    Singapore: { fajr: 20, isha: 18, maghrib: "sunset", midnight: "Standard" },
-    Turkey: { fajr: 18, isha: 17, maghrib: "sunset", midnight: "Standard" },
+    Singapore: { fajr: 20, isha: 18, maghrib: "sunset", midnight: "Standard", adjust: { dhuhr: 1 }, roundUp: true },
+    Turkey: { fajr: 18, isha: 17, maghrib: "sunset", midnight: "Standard", adjust: { sunrise: -7, dhuhr: 5, asr: 4, maghrib: 7 } },
     Custom: { fajr: 18, isha: 17, maghrib: "sunset", midnight: "Standard" }
   };
 
@@ -425,6 +425,29 @@
     return target;
   }
 
+  // Official per-method corrections (minutes), e.g. Diyanet (Turkey) and the UAE's
+  // General Authority of Islamic Affairs (Dubai), applied before the user's own offsets.
+  function applyMethodAdjustments(times) {
+    const base = METHODS[getBaseMethodName()];
+    if (!base) return times;
+
+    const out = {};
+    Object.keys(times).forEach((key) => {
+      let value = times[key];
+      if (value) {
+        const delta = base.adjust && base.adjust[key];
+        if (delta) value = addMinutes(value, delta);
+        if (base.roundUp && key !== "midnight") {
+          // Round up to the next whole minute (official practice for Singapore).
+          const ms = value.getTime();
+          value = new Date(Math.ceil(ms / 60000) * 60000);
+        }
+      }
+      out[key] = value;
+    });
+    return out;
+  }
+
   function applyOffsets(times) {
     const adjusted = {};
     Object.keys(times).forEach((key) => {
@@ -531,7 +554,7 @@
     }
 
     times.midnight = midnight;
-    return applyOffsets(times);
+    return applyOffsets(applyMethodAdjustments(times));
   }
 
   function buildPrayerTimes(dateInput) {

@@ -108,6 +108,18 @@
     document.body.style.overflow = "";
   }
 
+  // Escape closes the top-most dialog (confirm first, then settings).
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    if (!qs("confirm-modal")?.classList.contains("hidden")) {
+      event.preventDefault();
+      closeModal("confirm-modal");
+    } else if (!qs("settings-modal")?.classList.contains("hidden")) {
+      event.preventDefault();
+      closeModal("settings-modal");
+    }
+  });
+
   window.DOM = {
     qs,
     resolve,
