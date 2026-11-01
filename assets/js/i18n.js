@@ -1,6 +1,13 @@
 (function () {
   const translations = {
     ar: {
+      updateAvailable: "يتوفر إصدار جديد من التطبيق.",
+      gpsLocation: "موقعي (GPS)",
+      notificationsBlocked: "الإشعارات محظورة من المتصفح",
+      notificationsNeedsPermission: "الإشعارات تحتاج إذنًا",
+      notificationsUnsupported: "الإشعارات غير مدعومة",
+      testAlert: "اختبار التنبيه والصوت",
+      alertsNote: "تعمل التنبيهات وصوت الأذان أثناء فتح التطبيق، حتى لو كان في الخلفية. لا تستطيع تطبيقات الويب إيقاظ الجهاز بعد إغلاقها تمامًا. عند اختيار التذكير قبل الصلاة يصلك التنبيه قبل الموعد، ويُرفع الأذان في الموعد نفسه.",
       appName: "نور الصلاة برو",
       nextPrayer: "الصلاة القادمة",
       prayerAndQibla: "الصلاة والقبلة",
@@ -173,6 +180,13 @@
     },
 
     en: {
+      updateAvailable: "A new version of the app is available.",
+      gpsLocation: "My location (GPS)",
+      notificationsBlocked: "Notifications are blocked by the browser",
+      notificationsNeedsPermission: "Notifications need permission",
+      notificationsUnsupported: "Notifications are not supported",
+      testAlert: "Test alert and sound",
+      alertsNote: "Alerts and adhan sound work while the app is open, even in the background. Web apps cannot wake the device after they are fully closed. If you choose a reminder before the prayer, the notification arrives early and the adhan plays at the prayer time.",
       appName: "NoorPrayer Pro",
       nextPrayer: "Next Prayer",
       prayerAndQibla: "Prayer and Qibla",
@@ -373,6 +387,8 @@
     setTextIf("install-app-btn", "installApp");
     setTextIf("ios-permission-btn", "requestCompass");
     setTextIf("notif-permission-btn", "requestNotifications");
+    setTextIf("test-alert-btn", "testAlert");
+    setTextIf("alerts-note", "alertsNote");
     setTextIf("export-backup-btn", "exportBackup");
     setTextIf("copy-backup-btn", "copyJson");
     setTextIf("import-backup-btn", "importBackup");
