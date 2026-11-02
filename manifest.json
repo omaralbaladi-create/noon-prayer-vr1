@@ -1,6 +1,6 @@
 {
-  "name": "نور الصلاة برو | NoorPrayer Pro",
-  "short_name": "NoorPrayer",
+  "name": "نور الصلاة | مواقيت الصلاة",
+  "short_name": "نور الصلاة",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

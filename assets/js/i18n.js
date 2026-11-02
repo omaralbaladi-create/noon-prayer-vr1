@@ -11,7 +11,9 @@
       notificationsUnsupported: "الإشعارات غير مدعومة",
       testAlert: "اختبار التنبيه والصوت",
       alertsNote: "تعمل التنبيهات وصوت الأذان أثناء فتح التطبيق، حتى لو كان في الخلفية. لا تستطيع تطبيقات الويب إيقاظ الجهاز بعد إغلاقها تمامًا. عند اختيار التذكير قبل الصلاة يصلك التنبيه قبل الموعد، ويُرفع الأذان في الموعد نفسه.",
-      appName: "نور الصلاة برو",
+      appName: "نور الصلاة",
+      appTitle: "نور الصلاة | مواقيت الصلاة",
+      tagline: "مواقيت الصلاة",
       nextPrayer: "الصلاة القادمة",
       prayerAndQibla: "الصلاة والقبلة",
       month: "الشهر",
@@ -91,7 +93,7 @@
       normalMode: "الوضع العادي",
       ramadanModeBadge: "وضع رمضان",
 
-      footerNote: "يعمل نور الصلاة برو بشكل أفضل عبر HTTPS. قد لا تعمل بعض الإشعارات وأذونات البوصلة وخيارات التثبيت بالكامل داخل بعض المعاينات.",
+      footerNote: "يعمل نور الصلاة بشكل أفضل عبر HTTPS. قد لا تعمل بعض الإشعارات وأذونات البوصلة وخيارات التثبيت بالكامل داخل بعض المعاينات.",
       pwaInstallText: "يمكنك تثبيت التطبيق على جهازك.",
       offlineText: "أنت غير متصل الآن. سيستمر التطبيق بالعمل بقدر الإمكان دون إنترنت.",
 
@@ -168,7 +170,7 @@
       areYouSure: "هل أنت متأكد؟",
       cancel: "إلغاء",
 
-      noscript: "JavaScript مطلوب لكي يعمل NoorPrayer Pro في حساب المواقيت وإدارة الإعدادات والعمل دون اتصال.",
+      noscript: "JavaScript مطلوب لكي يعمل NoorPrayer في حساب المواقيت وإدارة الإعدادات والعمل دون اتصال.",
       backupCopied: "تم نسخ النسخة الاحتياطية.",
       backupImported: "تم استيراد النسخة الاحتياطية.",
       permissionStatus: "حالة إذن الإشعارات",
@@ -193,7 +195,9 @@
       notificationsUnsupported: "Notifications are not supported",
       testAlert: "Test alert and sound",
       alertsNote: "Alerts and adhan sound work while the app is open, even in the background. Web apps cannot wake the device after they are fully closed. If you choose a reminder before the prayer, the notification arrives early and the adhan plays at the prayer time.",
-      appName: "NoorPrayer Pro",
+      appName: "NoorPrayer",
+      appTitle: "NoorPrayer | Prayer Times",
+      tagline: "Prayer Times",
       nextPrayer: "Next Prayer",
       prayerAndQibla: "Prayer and Qibla",
       month: "Month",
@@ -273,7 +277,7 @@
       normalMode: "Normal mode",
       ramadanModeBadge: "Ramadan mode",
 
-      footerNote: "NoorPrayer Pro works best over HTTPS. Some notifications, compass permissions, and install options may not fully work in some previews.",
+      footerNote: "NoorPrayer works best over HTTPS. Some notifications, compass permissions, and install options may not fully work in some previews.",
       pwaInstallText: "You can install the application on your device.",
       offlineText: "You are offline now. The app will keep working as much as possible.",
 
@@ -350,7 +354,7 @@
       areYouSure: "Are you sure?",
       cancel: "Cancel",
 
-      noscript: "JavaScript is required for NoorPrayer Pro to calculate prayer times, manage settings, and run offline.",
+      noscript: "JavaScript is required for NoorPrayer to calculate prayer times, manage settings, and run offline.",
       backupCopied: "Backup copied.",
       backupImported: "Backup imported.",
       permissionStatus: "Notification permission",
@@ -384,9 +388,10 @@
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
     document.body.dir = lang === "ar" ? "rtl" : "ltr";
-    document.title = t("appName");
+    document.title = t("appTitle");
 
     setTextIf("app-title", "appName");
+    setTextIf("app-tagline", "tagline");
     setTextIf("next-prayer-label", "nextPrayer");
     setTextIf("footer-note", "footerNote");
     setTextIf("close-settings-btn", "close");

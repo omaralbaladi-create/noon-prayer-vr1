@@ -1,6 +1,6 @@
-# NoorPrayer Pro
+# NoorPrayer
 
-NoorPrayer Pro is a lightweight Progressive Web App for:
+NoorPrayer is a lightweight Progressive Web App for:
 
 - Prayer times
 - Qibla direction
