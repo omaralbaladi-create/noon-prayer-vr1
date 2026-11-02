@@ -13,6 +13,7 @@
       alertsNote: "تعمل التنبيهات وصوت الأذان أثناء فتح التطبيق، حتى لو كان في الخلفية. لا تستطيع تطبيقات الويب إيقاظ الجهاز بعد إغلاقها تمامًا. عند اختيار التذكير قبل الصلاة يصلك التنبيه قبل الموعد، ويُرفع الأذان في الموعد نفسه.",
       appName: "نور الصلاة",
       appTitle: "نور الصلاة | مواقيت الصلاة",
+      ramadan: "رمضان",
       tagline: "مواقيت الصلاة",
       nextPrayer: "الصلاة القادمة",
       prayerAndQibla: "الصلاة والقبلة",
@@ -197,6 +198,7 @@
       alertsNote: "Alerts and adhan sound work while the app is open, even in the background. Web apps cannot wake the device after they are fully closed. If you choose a reminder before the prayer, the notification arrives early and the adhan plays at the prayer time.",
       appName: "NoorPrayer",
       appTitle: "NoorPrayer | Prayer Times",
+      ramadan: "Ramadan",
       tagline: "Prayer Times",
       nextPrayer: "Next Prayer",
       prayerAndQibla: "Prayer and Qibla",
@@ -455,20 +457,22 @@
     }
 
     const mainTabs = document.querySelectorAll("#main-nav-tabs .tab-btn");
-    const mainTabMap = [
-      "prayerAndQibla",
-      "month",
-      "salah",
-      "history",
-      "azkar",
-      "tasbih",
-      "quran",
-      "zakat"
-    ];
-    mainTabs.forEach((btn, index) => {
-      if (!mainTabMap[index]) return;
+    const mainTabKeys = {
+      prayer: "prayerAndQibla",
+      month: "month",
+      salah: "salah",
+      history: "history",
+      azkar: "azkar",
+      tasbih: "tasbih",
+      quran: "quran",
+      zakat: "zakat",
+      ramadan: "ramadan"
+    };
+    mainTabs.forEach((btn) => {
+      const key = mainTabKeys[btn.dataset.tab];
+      if (!key) return;
       const label = btn.querySelector(".tab-label") || btn;
-      label.textContent = t(mainTabMap[index]);
+      label.textContent = t(key);
     });
 
     const azkarTabs = document.querySelectorAll("#azkar-sub-tabs .tab-btn");

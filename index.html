@@ -77,6 +77,7 @@
     <button class="tab-btn" data-tab="tasbih"><span class="tab-icon" aria-hidden="true">📿</span><span class="tab-label">التسبيح</span></button>
     <button class="tab-btn" data-tab="quran"><span class="tab-icon" aria-hidden="true">📖</span><span class="tab-label">ختم القرآن</span></button>
     <button class="tab-btn" data-tab="zakat"><span class="tab-icon" aria-hidden="true">💰</span><span class="tab-label">الزكاة</span></button>
+    <button class="tab-btn" data-tab="ramadan"><span class="tab-icon" aria-hidden="true">🌙</span><span class="tab-label">رمضان</span></button>
   </div>
 
   <div id="tab-prayer" class="tab-content">
@@ -133,6 +134,47 @@
           جارٍ معايرة البوصلة...
         </p>
       </div>
+    </div>
+  </div>
+
+  <div id="tab-ramadan" class="tab-content hidden">
+    <div class="card">
+      <h3 id="ramadan-title" class="ramadan-title"></h3>
+      <p id="ramadan-status" class="ramadan-status"></p>
+      <p id="ramadan-range" class="small-note"></p>
+
+      <div class="ramadan-stats">
+        <div class="ramadan-stat"><span id="ramadan-stat-imsak-label" class="ramadan-stat-label"></span><strong id="ramadan-stat-imsak"></strong></div>
+        <div class="ramadan-stat"><span id="ramadan-stat-fajr-label" class="ramadan-stat-label"></span><strong id="ramadan-stat-fajr"></strong></div>
+        <div class="ramadan-stat"><span id="ramadan-stat-iftar-label" class="ramadan-stat-label"></span><strong id="ramadan-stat-iftar"></strong></div>
+      </div>
+      <p id="ramadan-ref-note" class="small-note"></p>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <div class="input-group">
+        <label id="ramadan-imsak-label" for="ramadan-imsak-select"></label>
+        <select id="ramadan-imsak-select">
+          <option value="0">0</option>
+          <option value="5">5</option>
+          <option value="10">10</option>
+          <option value="15">15</option>
+          <option value="20">20</option>
+        </select>
+      </div>
+
+      <div class="no-print" style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+        <button id="ramadan-export-btn" class="btn-secondary" style="flex:1;"></button>
+        <button id="ramadan-print-btn" class="btn-secondary" style="flex:1;"></button>
+      </div>
+
+      <div class="table-wrap">
+        <table class="ramadan-table">
+          <thead id="ramadan-thead"></thead>
+          <tbody id="ramadan-tbody"></tbody>
+        </table>
+      </div>
+      <p id="ramadan-note" class="small-note"></p>
     </div>
   </div>
 
@@ -593,6 +635,7 @@
   <script src="./assets/js/prayer.js"></script>
   <script src="./assets/data/azkar.js"></script>
   <script src="./assets/js/alerts.js"></script>
+  <script src="./assets/js/ramadan.js"></script>
   <script src="./assets/js/app.js"></script>
 </body>
 </html>

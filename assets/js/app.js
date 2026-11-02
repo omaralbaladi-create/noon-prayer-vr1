@@ -902,6 +902,7 @@
   function renderAll() {
     renderLocationLabel();
     window.Qibla?.update?.();
+    window.Ramadan?.render?.();
     renderBadges();
     syncPrayerConfigFromAppState(false);
     window.Prayer?.renderTodayPrayerList?.();
@@ -930,7 +931,9 @@
     window.DOM.setText("install-badge", t("installReady"));
     window.DOM.setText(
       "ramadan-badge",
-      window.APP_STATE.settings.ramadanMode ? t("ramadanModeBadge") : t("normalMode")
+      window.APP_STATE.settings.ramadanMode || window.Prayer?.isRamadanDate?.(new Date())
+        ? t("ramadanModeBadge")
+        : t("normalMode")
     );
     const notifState =
       window.Alerts?.notificationState?.() ||
