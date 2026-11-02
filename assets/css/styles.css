@@ -868,3 +868,10 @@ th {
     min-width: auto;
   }
 }
+
+.app-tagline {
+  margin: 0 0 2px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--primary);
+}
