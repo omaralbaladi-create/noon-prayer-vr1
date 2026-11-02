@@ -68,6 +68,7 @@ body[data-theme="sunset"] {
 
 html {
   scroll-behavior: smooth;
+  overflow-x: clip;
 }
 
 body {
@@ -362,6 +363,8 @@ header {
   margin: 0 auto;
   width: min(86vw, 320px);
   height: min(86vw, 320px);
+  /* a rotated needle box is wider than the dial; clip it so the page never scrolls sideways */
+  overflow: hidden;
 }
 
 .compass-ring,
