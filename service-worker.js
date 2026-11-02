@@ -24,6 +24,7 @@ const CORE_ASSETS = [
   "./assets/js/qibla.js",
   "./assets/js/prayer.js",
   "./assets/js/alerts.js",
+  "./assets/js/ramadan.js",
   "./assets/js/app.js",
   "./assets/data/azkar.js",
   "./assets/icons/icon-512.png",

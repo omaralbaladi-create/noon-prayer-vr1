@@ -18,6 +18,7 @@
         highLatitudeRule: "NightMiddle",
         midnightMode: "",
         ramadanMode: false,
+        imsakMinutes: 10,
 
         offsets: {
           fajr: 0,

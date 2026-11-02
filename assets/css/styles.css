@@ -879,7 +879,7 @@ th {
 /* Main tabs: all eight visible as a grid (icon over label), no sideways scrolling */
 #main-nav-tabs {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   overflow: visible;
   padding: 10px 0;
@@ -908,6 +908,83 @@ th {
 
 @media (min-width: 720px) {
   #main-nav-tabs {
-    grid-template-columns: repeat(8, minmax(0, 1fr));
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+  }
+}
+
+/* Ramadan tab */
+.ramadan-title {
+  margin: 0 0 4px;
+  font-size: 1.15rem;
+  color: var(--primary);
+}
+
+.ramadan-status {
+  margin: 0 0 6px;
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.ramadan-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 6px;
+}
+
+.ramadan-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px;
+  border-radius: 14px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.ramadan-stat strong {
+  font-size: 1.15rem;
+}
+
+.ramadan-stat-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.ramadan-table {
+  min-width: 0;
+}
+
+.ramadan-table th,
+.ramadan-table td {
+  padding: 8px 2px;
+  font-size: clamp(0.64rem, 3vw, 0.78rem);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.ramadan-table tr.today td {
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+  font-weight: 800;
+}
+
+.ramadan-table td.iftar {
+  color: var(--primary);
+  font-weight: 800;
+}
+
+@media print {
+  .header-shell,
+  #main-nav-tabs,
+  .status-banner,
+  .no-print,
+  #overlay {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+    padding: 0;
   }
 }

@@ -387,8 +387,39 @@
     };
   }
 
+  // Hijri month/day/year (Umm al-Qura calendar, the one Saudi Arabia uses)
+  let hijriFormatter = null;
+  function hijriParts(date) {
+    try {
+      if (!hijriFormatter) {
+        hijriFormatter = new Intl.DateTimeFormat("en-u-ca-islamic-umalqura", {
+          day: "numeric",
+          month: "numeric",
+          year: "numeric"
+        });
+      }
+      const parts = {};
+      hijriFormatter.formatToParts(date).forEach((p) => {
+        if (p.type === "day" || p.type === "month" || p.type === "year") parts[p.type] = Number(p.value);
+      });
+      return parts.month ? parts : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function isHijriRamadan(date) {
+    const h = hijriParts(date);
+    return !!h && h.month === 9;
+  }
+
+  // The date currently being computed, so Ramadan is detected per day (also for month/Ramadan tables).
+  let calcDate = null;
+
+  // On: the user switched it on, or the day being computed is in Ramadan (Umm al-Qura Isha is 120 min then).
   function isRamadanMode() {
-    return !!getSettings().ramadanMode;
+    if (getSettings().ramadanMode) return true;
+    return calcDate ? isHijriRamadan(calcDate) : false;
   }
 
   function resolveFixedMinutes(value, prayerName) {
@@ -467,6 +498,7 @@
 
   function computeRawTimes(dateInput) {
     const date = new Date(dateInput);
+    calcDate = date;
     const { lat, lng } = getLocation();
     const timeZone = getTimeZoneHours(date);
     const jd = getJulianDate(date);
@@ -922,6 +954,8 @@
     updateConfig,
     setCalculationSettings,
     setLocation,
-    setMonthOffset
+    setMonthOffset,
+    hijriParts,
+    isRamadanDate: isHijriRamadan
   };
 })();
