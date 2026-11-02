@@ -875,3 +875,39 @@ th {
   font-weight: 700;
   color: var(--primary);
 }
+
+/* Main tabs: all eight visible as a grid (icon over label), no sideways scrolling */
+#main-nav-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  overflow: visible;
+  padding: 10px 0;
+}
+
+#main-nav-tabs .tab-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 64px;
+  padding: 8px 2px;
+  border-radius: 16px;
+  white-space: normal;
+  font-size: clamp(0.66rem, 3vw, 0.78rem);
+  line-height: 1.25;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+#main-nav-tabs .tab-icon {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+@media (min-width: 720px) {
+  #main-nav-tabs {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+}
