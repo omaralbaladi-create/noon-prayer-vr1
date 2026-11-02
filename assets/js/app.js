@@ -1237,9 +1237,19 @@
 
     try {
       await navigator.clipboard.writeText(text);
-      window.DOM.show("backup-banner");
-      window.DOM.setText("backup-banner", t("backupCopied"));
-    } catch (_) {}
+      showBackupStatus(t("backupCopied"), true);
+    } catch (_) {
+      showBackupStatus(t("backupCopyFailed"), false);
+    }
+  }
+
+  // Show an import/export result inside the settings dialog (the page banner sits behind the overlay).
+  function showBackupStatus(message, ok) {
+    const box = window.DOM.qs("backup-status");
+    if (!box) return;
+    box.textContent = message;
+    box.classList.remove("hidden", "success-banner", "warning-banner");
+    box.classList.add(ok ? "success-banner" : "warning-banner");
   }
 
   function importBackup() {
@@ -1249,10 +1259,10 @@
       ensurePrayerConfigBridge();
       applyStateToUI();
       renderAll();
-      window.DOM.show("backup-banner");
-      window.DOM.setText("backup-banner", t("backupImported"));
+      showBackupStatus(t("backupImported"), true);
     } catch (error) {
       console.error(error);
+      showBackupStatus(t("backupInvalid"), false);
     }
   }
 

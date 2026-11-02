@@ -2,6 +2,9 @@
   const translations = {
     ar: {
       updateAvailable: "يتوفر إصدار جديد من التطبيق.",
+      privacyPolicy: "سياسة الخصوصية",
+      backupInvalid: "ملف النسخة الاحتياطية غير صالح. لم يتم تغيير أي بيانات.",
+      backupCopyFailed: "تعذر النسخ تلقائيًا. انسخ النص من المربع يدويًا.",
       gpsLocation: "موقعي (GPS)",
       notificationsBlocked: "الإشعارات محظورة من المتصفح",
       notificationsNeedsPermission: "الإشعارات تحتاج إذنًا",
@@ -181,6 +184,9 @@
 
     en: {
       updateAvailable: "A new version of the app is available.",
+      privacyPolicy: "Privacy policy",
+      backupInvalid: "Invalid backup file. Nothing was changed.",
+      backupCopyFailed: "Could not copy automatically. Copy the text from the box manually.",
       gpsLocation: "My location (GPS)",
       notificationsBlocked: "Notifications are blocked by the browser",
       notificationsNeedsPermission: "Notifications need permission",
@@ -388,6 +394,7 @@
     setTextIf("ios-permission-btn", "requestCompass");
     setTextIf("notif-permission-btn", "requestNotifications");
     setTextIf("test-alert-btn", "testAlert");
+    setTextIf("privacy-link", "privacyPolicy");
     setTextIf("alerts-note", "alertsNote");
     setTextIf("export-backup-btn", "exportBackup");
     setTextIf("copy-backup-btn", "copyJson");

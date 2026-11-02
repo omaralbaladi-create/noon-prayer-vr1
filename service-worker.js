@@ -26,7 +26,9 @@ const CORE_ASSETS = [
   "./assets/js/alerts.js",
   "./assets/js/app.js",
   "./assets/data/azkar.js",
-  "./assets/icons/icon-512.png"
+  "./assets/icons/icon-512.png",
+  "./assets/icons/icon-192.png",
+  "./assets/icons/apple-touch-icon.png"
 ];
 
 // Big files: cached best-effort so a missing/slow audio file never breaks the install.
