@@ -203,7 +203,7 @@
       month: "Month",
       salah: "Prayer Log",
       history: "History",
-      azkar: "Remembrances",
+      azkar: "Azkar",
       tasbih: "Praise",
       quran: "Completing the Quran",
       zakat: "Zakat",
@@ -466,7 +466,9 @@
       "zakat"
     ];
     mainTabs.forEach((btn, index) => {
-      if (mainTabMap[index]) btn.textContent = t(mainTabMap[index]);
+      if (!mainTabMap[index]) return;
+      const label = btn.querySelector(".tab-label") || btn;
+      label.textContent = t(mainTabMap[index]);
     });
 
     const azkarTabs = document.querySelectorAll("#azkar-sub-tabs .tab-btn");

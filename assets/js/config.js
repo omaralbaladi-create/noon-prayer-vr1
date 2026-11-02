@@ -1,6 +1,6 @@
 window.APP_CONFIG = {
   appName: "NoorPrayer",
-  version: "1.1.2",
+  version: "1.2.0",
   storageKey: "noor-prayer-pro",
   backupVersion: 1,
 
