@@ -33,6 +33,7 @@ public class MainActivity extends Activity {
     private static final String START_URL = "https://" + HOST + "/assets/www/index.html";
     private static final int REQ_LOCATION = 10;
     private static final int REQ_NOTIFICATIONS = 11;
+    private static final int REQ_LOCATION_START = 12;
 
     private WebView web;
     private GeolocationPermissions.Callback geoCallback;
@@ -78,7 +79,7 @@ public class MainActivity extends Activity {
         web.setWebChromeClient(new WebChromeClient() {
             @Override
             public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
-                if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                if (hasLocationPermission()) {
                     callback.invoke(origin, true, false);
                 } else {
                     geoCallback = callback;
@@ -92,8 +93,27 @@ public class MainActivity extends Activity {
 
         web.addJavascriptInterface(new Bridge(), "NoorNative");
 
-        if (savedInstanceState != null) web.restoreState(savedInstanceState);
-        else web.loadUrl(START_URL);
+        if (savedInstanceState != null) {
+            web.restoreState(savedInstanceState);
+        } else if (hasLocationPermission() || Build.VERSION.SDK_INT < 23) {
+            web.loadUrl(START_URL);
+        } else {
+            // Ask for location BEFORE the page loads, so the page's GPS request is answered instantly
+            // instead of timing out while the system dialog is on screen.
+            requestPermissions(new String[]{
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION}, REQ_LOCATION_START);
+        }
+    }
+
+    private boolean hasLocationPermission() {
+        return checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                || checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private static boolean anyGranted(int[] results) {
+        for (int r : results) if (r == PackageManager.PERMISSION_GRANTED) return true;
+        return false;
     }
 
     @Override
@@ -127,8 +147,12 @@ public class MainActivity extends Activity {
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-        if (requestCode == REQ_LOCATION) {
-            boolean granted = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+        if (requestCode == REQ_LOCATION_START) {
+            // Granted or not, start the app; the page shows its own message if GPS is unavailable.
+            web.loadUrl(START_URL);
+        } else if (requestCode == REQ_LOCATION) {
+            // "Approximate" on Android 12+ grants only the coarse permission, which is enough.
+            boolean granted = anyGranted(grantResults);
             if (geoCallback != null) geoCallback.invoke(geoOrigin, granted, false);
             geoCallback = null;
             geoOrigin = null;

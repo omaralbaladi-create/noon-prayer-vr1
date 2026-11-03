@@ -86,14 +86,17 @@
     URL.revokeObjectURL(url);
   }
 
+  // Some Android WebViews print the Hijri era as "BC"; build the text without the era and add AH ourselves.
+  function hijriText(locale, date) {
+    const parts = new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", year: "numeric" }).formatToParts(date);
+    const text = parts.filter((p) => p.type !== "era").map((p) => p.value).join("").replace(/[\s,]+$/, "").trim();
+    return /^ar/.test(locale) ? `${text} هـ` : `${text} AH`;
+  }
+
   function getHijriApprox(date) {
     try {
       const locale = lang() === "en" ? "en-u-ca-islamic-umalqura" : "ar-SA-u-ca-islamic-umalqura";
-      return new Intl.DateTimeFormat(locale, {
-        day: "numeric",
-        month: "long",
-        year: "numeric"
-      }).format(date);
+      return hijriText(locale, date);
     } catch (_) {
       return "";
     }

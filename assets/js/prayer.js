@@ -694,12 +694,9 @@
     const gregorianText = formatDateLabel(today);
 
     try {
-      const hijri = new Intl.DateTimeFormat(
-        lang() === "en" ? "en-u-ca-islamic-umalqura" : "ar-SA-u-ca-islamic-umalqura",
-        { day: "numeric", month: "long", year: "numeric" }
-      ).format(today);
+      const hijri = window.Utils.getHijriApprox(today);
 
-      el.textContent = `${gregorianText} • ${hijri}`;
+      el.textContent = hijri ? `${gregorianText} • ${hijri}` : gregorianText;
     } catch (_) {
       el.textContent = gregorianText;
     }
