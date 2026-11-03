@@ -86,17 +86,32 @@
     URL.revokeObjectURL(url);
   }
 
-  // Some Android WebViews print the Hijri era as "BC"; build the text without the era and add AH ourselves.
-  function hijriText(locale, date) {
-    const parts = new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", year: "numeric" }).formatToParts(date);
-    const text = parts.filter((p) => p.type !== "era").map((p) => p.value).join("").replace(/[\s,]+$/, "").trim();
-    return /^ar/.test(locale) ? `${text} هـ` : `${text} AH`;
+  // Some Android WebViews print Gregorian month names ("May") and the era "BC" for Hijri dates.
+  // So only the numbers come from Intl; the month names and AH are added here.
+  const HIJRI_MONTHS = {
+    en: ["Muharram", "Safar", "Rabi\u02bb I", "Rabi\u02bb II", "Jumada I", "Jumada II", "Rajab", "Sha\u02bban", "Ramadan", "Shawwal", "Dhu\u02bbl-Qi\u02bbdah", "Dhu\u02bbl-Hijjah"],
+    ar: ["\u0645\u062d\u0631\u0645", "\u0635\u0641\u0631", "\u0631\u0628\u064a\u0639 \u0627\u0644\u0623\u0648\u0644", "\u0631\u0628\u064a\u0639 \u0627\u0644\u0622\u062e\u0631", "\u062c\u0645\u0627\u062f\u0649 \u0627\u0644\u0623\u0648\u0644\u0649", "\u062c\u0645\u0627\u062f\u0649 \u0627\u0644\u0622\u062e\u0631\u0629", "\u0631\u062c\u0628", "\u0634\u0639\u0628\u0627\u0646", "\u0631\u0645\u0636\u0627\u0646", "\u0634\u0648\u0627\u0644", "\u0630\u0648 \u0627\u0644\u0642\u0639\u062f\u0629", "\u0630\u0648 \u0627\u0644\u062d\u062c\u0629"]
+  };
+
+  function hijriText(language, date) {
+    const parts = {};
+    new Intl.DateTimeFormat("en-u-ca-islamic-umalqura-nu-latn", { day: "numeric", month: "numeric", year: "numeric" })
+      .formatToParts(date)
+      .forEach((p) => {
+        if (p.type === "day" || p.type === "month" || p.type === "year") parts[p.type] = Number(p.value);
+      });
+    const name = HIJRI_MONTHS[language][parts.month - 1];
+    if (!name || !parts.day || !parts.year) throw new Error("hijri");
+    if (language === "ar") {
+      const n = (v) => new Intl.NumberFormat("ar-SA", { useGrouping: false }).format(v);
+      return `${n(parts.day)} ${name} ${n(parts.year)} \u0647\u0640`;
+    }
+    return `${name} ${parts.day}, ${parts.year} AH`;
   }
 
   function getHijriApprox(date) {
     try {
-      const locale = lang() === "en" ? "en-u-ca-islamic-umalqura" : "ar-SA-u-ca-islamic-umalqura";
-      return hijriText(locale, date);
+      return hijriText(lang(), date);
     } catch (_) {
       return "";
     }
