@@ -33,6 +33,7 @@
   }
 
   function supported() {
+    if (window.NoorNative) return false; // the Android app schedules its own alarms
     return !!(serverUrl() && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window);
   }
 

@@ -179,6 +179,7 @@
   }
 
   function registerServiceWorker() {
+    if (window.NoorNative) return; // the Android app bundles its own files
     if (!("serviceWorker" in navigator)) return;
 
     const hadController = !!navigator.serviceWorker.controller;
@@ -264,6 +265,7 @@
 
     window.Alerts?.start?.();
     window.Push?.start?.();
+    window.Native?.start?.();
     startDayRolloverWatcher();
   }
 
@@ -587,6 +589,10 @@
     window.DOM.on("test-alert-btn", "click", () => window.Alerts?.test?.());
     window.addEventListener("alerts-changed", renderBadges);
     window.addEventListener("push-changed", renderPushStatus);
+    window.addEventListener("native-changed", () => {
+      renderPushStatus();
+      renderBadges();
+    });
     window.DOM.on("test-push-btn", "click", runPushTest);
 
     window.DOM.on("notif-enabled", "change", (e) => {
@@ -1221,6 +1227,10 @@
   }
 
   function requestNotificationPermission() {
+    if (window.Native?.isNative?.()) {
+      window.Native.requestPermissions();
+      return;
+    }
     if (!("Notification" in window)) return;
 
     Notification.requestPermission().then((permission) => {
@@ -1313,12 +1323,27 @@
     window.StorageAPI.saveState();
     // Re-send the prayer schedule to the push server if anything that affects it changed.
     window.Push?.scheduleSync?.(false);
+    window.Native?.scheduleSync?.();
   }
 
   let pushTestNote = "";
 
   function renderPushStatus() {
     const el = window.DOM.qs("push-status");
+
+    if (window.Native?.isNative?.()) {
+      const key = {
+        off: "nativeOff",
+        "needs-notifications": "nativeNeedsNotif",
+        "needs-battery": "nativeNeedsBattery",
+        on: "nativeOn"
+      }[window.Native.status()];
+      if (el) el.textContent = key ? t(key) : "";
+      window.DOM.hide("test-push-btn");
+      window.DOM.setText("notif-permission-btn", t("nativePermBtn"));
+      return;
+    }
+
     if (!el || !window.Push) return;
 
     const { state } = window.Push.status();

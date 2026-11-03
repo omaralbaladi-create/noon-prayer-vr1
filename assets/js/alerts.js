@@ -35,6 +35,11 @@
   // Permission / state
   // ---------------------------------------------------------------
   function notificationState() {
+    // Inside the Android app the real permission lives in Android.
+    if (window.Native?.isNative?.()) {
+      if (!settings().enabled) return "off";
+      return window.Native.permissions().notifications === false ? "needs-permission" : "on";
+    }
     if (!("Notification" in window)) return "unsupported";
     if (!settings().enabled) return "off";
     if (Notification.permission === "granted") return "on";
@@ -43,6 +48,10 @@
   }
 
   function ensurePermission() {
+    if (window.Native?.isNative?.()) {
+      if (window.Native.permissions().notifications === false) window.Native.requestPermissions();
+      return Promise.resolve(window.Native.permissions().notifications === false ? "default" : "granted");
+    }
     if (!("Notification" in window)) return Promise.resolve("unsupported");
     if (Notification.permission !== "default") return Promise.resolve(Notification.permission);
 
@@ -253,6 +262,8 @@
   }
 
   function check() {
+    // The Android app fires alerts natively; do not also fire them from the page.
+    if (window.Native?.isNative?.()) return;
     const cfg = settings();
     if (!cfg.enabled && !cfg.audioEnabled) return;
     if (!window.Prayer?.buildPrayerTimes) return;
@@ -306,6 +317,11 @@
   }
 
   async function test() {
+    if (window.Native?.isNative?.()) {
+      window.Native.test();
+      emitChanged();
+      return;
+    }
     const perm = await ensurePermission();
     const m = messages("dhuhr", 0);
 

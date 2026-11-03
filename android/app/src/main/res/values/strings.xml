@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">NoorPrayer</string>
+    <string name="channel_playback">Adhan playback</string>
+    <string name="channel_alert">Prayer alerts</string>
+    <string name="channel_sound">Prayer alerts with adhan sound</string>
+    <string name="stop_adhan">Stop adhan</string>
+</resources>

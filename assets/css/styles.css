@@ -988,3 +988,9 @@ th {
     padding: 0;
   }
 }
+
+/* Inside the Android app the adhan is played by Android itself, so the browser-oriented note is hidden. */
+.is-native-app #alerts-note,
+.is-native-app #install-app-btn {
+  display: none !important;
+}

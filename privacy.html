@@ -79,6 +79,7 @@
       <p>Alerts are shown only after you allow them. So that notifications arrive even when the app is closed, the app sends a small push server (Cloudflare Workers) just two things: the anonymous push address your browser gives this app, and a list of your upcoming prayer times (about 14 days) with the text of each notification. Your location, name and any personal identifier are not sent, and the server does not know which city you are in.</p>
       <p>The server uses this only to deliver each notification on time. Times are deleted within two days after they pass, and your address is deleted when you turn alerts off, when it expires, or if you do not open the app for over 45 days. Notifications pass through your browser's own push service (for example Google, for Chrome on Android).</p>
       <p>Turning off "Enable prayer notifications" removes your address from the server. The full adhan audio plays only while the app is open.</p>
+      <p><strong>Android app:</strong> the Android version does not use the push server at all. It keeps your next 30 days of prayer times on your phone and sets a local alarm to play the adhan, so no notification data leaves your device. It asks for: location (only to calculate prayer times, kept on your device), notifications and background/battery permission (so the adhan can play at prayer time), and internet access (to load map-free web content bundled in the app and open external links).</p>
 
       <h2>Backups</h2>
       <p>Exporting a backup saves it to your device or clipboard. You decide where it goes.</p>
