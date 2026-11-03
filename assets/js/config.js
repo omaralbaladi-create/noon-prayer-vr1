@@ -1,8 +1,12 @@
 window.APP_CONFIG = {
   appName: "NoorPrayer",
-  version: "1.3.0",
+  version: "1.4.0",
   storageKey: "noor-prayer-pro",
   backupVersion: 1,
+
+  // Address of the push server (Cloudflare Worker) that sends prayer notifications
+  // while the app is closed. Leave empty to disable. Example: "https://noor-push.YOURNAME.workers.dev"
+  pushServerUrl: "https://noor-push.omar-albaladi.workers.dev",
 
   mecca: {
     lat: 21.4225,

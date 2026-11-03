@@ -35,7 +35,7 @@
       <h2>ما الذي يُحفظ على جهازك؟</h2>
       <ul>
         <li>إعداداتك (الموقع، طريقة الحساب، التنبيهات)، وسجل الصلوات والتسبيح، وأسعار الزكاة التي تدخلها.</li>
-        <li>تُحفظ هذه البيانات في متصفحك فقط (التخزين المحلي) ولا تُرسل إلى أي خادم تابع للتطبيق. حذف بيانات الموقع من المتصفح يحذفها.</li>
+        <li>تُحفظ هذه البيانات في متصفحك فقط (التخزين المحلي) ولا تُرسل إلى أي خادم تابع للتطبيق، باستثناء ما هو مذكور في قسم «الإشعارات والصوت» أدناه عند تفعيل التنبيهات. حذف بيانات الموقع من المتصفح يحذفها.</li>
       </ul>
 
       <h2>الموقع</h2>
@@ -48,7 +48,9 @@
       <p>تُحمَّل خطوط الواجهة من Google Fonts، وقد يرى مزوّد الخط عنوان IP الخاص بك عند التحميل.</p>
 
       <h2>الإشعارات والصوت</h2>
-      <p>التنبيهات تُجدول وتُعرض على جهازك فقط وبعد موافقتك، ولا يوجد خادم إشعارات.</p>
+      <p>التنبيهات تُعرض بعد موافقتك. لكي تصلك الإشعارات حتى والتطبيق مغلق، يُرسل التطبيق إلى خادم إشعارات صغير (Cloudflare Workers) أمرين فقط: عنوان الإشعارات المجهول الذي يعطيه متصفحك لهذا التطبيق، وقائمة بأوقات الصلاة القادمة (نحو 14 يومًا) مع نص كل إشعار. لا يُرسل موقعك ولا اسمك ولا أي معرّف شخصي، ولا يعرف الخادم المدينة التي تقيم فيها.</p>
+      <p>يستخدم الخادم هذه البيانات لإرسال الإشعار في وقته فقط. تُحذف الأوقات خلال يومين من موعدها، ويُحذف العنوان عند إيقاف التنبيهات أو عند انتهاء صلاحيته أو إذا لم تفتح التطبيق لأكثر من 45 يومًا. ويمر الإشعار عبر خدمة الإشعارات الخاصة بمتصفحك (مثل Google لمتصفح كروم على أندرويد).</p>
+      <p>إيقاف «تفعيل تنبيهات الصلاة» يحذف عنوانك من الخادم. صوت الأذان الكامل لا يعمل إلا أثناء فتح التطبيق.</p>
 
       <h2>النسخ الاحتياطي</h2>
       <p>تصدير النسخة الاحتياطية يتم إلى جهازك أو الحافظة، وأنت من يقرر أين يحفظها.</p>
@@ -61,7 +63,7 @@
       <h2>What is stored on your device</h2>
       <ul>
         <li>Your settings (location, calculation method, alerts), prayer and tasbih history, and any zakat prices you type in.</li>
-        <li>This data stays in your browser's local storage. It is never sent to a server run by this app. Clearing the site's data in your browser deletes it.</li>
+        <li>This data stays in your browser's local storage. It is never sent to a server run by this app, except what is described under "Notifications and sound" below when you turn alerts on. Clearing the site's data in your browser deletes it.</li>
       </ul>
 
       <h2>Location</h2>
@@ -74,7 +76,9 @@
       <p>Interface fonts are loaded from Google Fonts, so Google may see your IP address when they load.</p>
 
       <h2>Notifications and sound</h2>
-      <p>Alerts are scheduled and shown on your device only, after you allow them. There is no push server.</p>
+      <p>Alerts are shown only after you allow them. So that notifications arrive even when the app is closed, the app sends a small push server (Cloudflare Workers) just two things: the anonymous push address your browser gives this app, and a list of your upcoming prayer times (about 14 days) with the text of each notification. Your location, name and any personal identifier are not sent, and the server does not know which city you are in.</p>
+      <p>The server uses this only to deliver each notification on time. Times are deleted within two days after they pass, and your address is deleted when you turn alerts off, when it expires, or if you do not open the app for over 45 days. Notifications pass through your browser's own push service (for example Google, for Chrome on Android).</p>
+      <p>Turning off "Enable prayer notifications" removes your address from the server. The full adhan audio plays only while the app is open.</p>
 
       <h2>Backups</h2>
       <p>Exporting a backup saves it to your device or clipboard. You decide where it goes.</p>

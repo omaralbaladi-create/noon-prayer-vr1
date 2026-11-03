@@ -263,6 +263,7 @@
     }
 
     window.Alerts?.start?.();
+    window.Push?.start?.();
     startDayRolloverWatcher();
   }
 
@@ -585,6 +586,8 @@
     window.DOM.on("notif-permission-btn", "click", requestNotificationPermission);
     window.DOM.on("test-alert-btn", "click", () => window.Alerts?.test?.());
     window.addEventListener("alerts-changed", renderBadges);
+    window.addEventListener("push-changed", renderPushStatus);
+    window.DOM.on("test-push-btn", "click", runPushTest);
 
     window.DOM.on("notif-enabled", "change", (e) => {
       window.APP_STATE.settings.notifications.enabled = e.target.checked;
@@ -904,6 +907,7 @@
     window.Qibla?.update?.();
     window.Ramadan?.render?.();
     renderBadges();
+    renderPushStatus();
     syncPrayerConfigFromAppState(false);
     window.Prayer?.renderTodayPrayerList?.();
     window.Prayer?.renderMonthTable?.();
@@ -1307,6 +1311,49 @@
     applyStateToUI();
     renderAll();
     window.StorageAPI.saveState();
+    // Re-send the prayer schedule to the push server if anything that affects it changed.
+    window.Push?.scheduleSync?.(false);
+  }
+
+  let pushTestNote = "";
+
+  function renderPushStatus() {
+    const el = window.DOM.qs("push-status");
+    if (!el || !window.Push) return;
+
+    const { state } = window.Push.status();
+    const key = {
+      active: "pushOn",
+      off: "pushOff",
+      unavailable: "pushUnavailable",
+      "needs-permission": "pushNeedsPermission",
+      blocked: "pushBlocked",
+      error: "pushError"
+    }[state];
+
+    el.textContent = pushTestNote || (key ? t(key) : "");
+    window.DOM.toggle("test-push-btn", state === "unavailable");
+  }
+
+  async function runPushTest() {
+    if (!window.Push) return;
+    pushTestNote = "";
+    const result = await window.Push.test();
+    const keys = {
+      disabled: "pushTestDisabled",
+      permission: null,
+      unavailable: null,
+      rate: "pushTestRate",
+      error: "pushTestFail"
+    };
+    if (result.ok) pushTestNote = t("pushTestSent");
+    else if (keys[result.reason]) pushTestNote = t(keys[result.reason]);
+    renderPushStatus();
+    // Keep the message visible for a couple of minutes, then fall back to the normal status.
+    setTimeout(() => {
+      pushTestNote = "";
+      renderPushStatus();
+    }, 120000);
   }
 
   document.addEventListener("DOMContentLoaded", init);

@@ -1,9 +1,10 @@
 (function () {
   // Prayer alerts: notifications + adhan audio.
   //
-  // Honest limit of a web app: this runs while the app is open (foreground or
-  // background tab / installed app that is still alive). A browser will not let a
-  // fully closed web app wake the phone at prayer time without a push server.
+  // This runs while the app is open (foreground or background). When the app is
+  // fully closed, prayer notifications come from the push server instead
+  // (see push.js and the "push" handler in service-worker.js). Both use the same
+  // notification tags, so the phone never shows the same prayer twice.
 
   const FIRED_KEY = "noor-alerts-fired";
   const TICK_MS = 15000;
@@ -348,6 +349,7 @@
     ensurePermission,
     unlockAudio,
     stopAdhan,
-    notificationState
+    notificationState,
+    messages
   };
 })();

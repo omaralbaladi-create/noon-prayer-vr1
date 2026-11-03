@@ -10,7 +10,18 @@
       notificationsNeedsPermission: "الإشعارات تحتاج إذنًا",
       notificationsUnsupported: "الإشعارات غير مدعومة",
       testAlert: "اختبار التنبيه والصوت",
-      alertsNote: "تعمل التنبيهات وصوت الأذان أثناء فتح التطبيق، حتى لو كان في الخلفية. لا تستطيع تطبيقات الويب إيقاظ الجهاز بعد إغلاقها تمامًا. عند اختيار التذكير قبل الصلاة يصلك التنبيه قبل الموعد، ويُرفع الأذان في الموعد نفسه.",
+      alertsNote: "عند تفعيل تنبيهات الصلاة تصلك إشعارات في وقت كل صلاة حتى لو كان التطبيق مغلقًا، عبر خادم صغير يرسل الإشعار فقط (لا يعرف موقعك). صوت الأذان الكامل يعمل أثناء فتح التطبيق فقط، أما مع إغلاقه فيصدر الهاتف صوت الإشعار الافتراضي. عند اختيار التذكير قبل الصلاة يصلك التنبيه قبل الموعد.",
+      testPush: "اختبار الإشعار بعد دقيقة (مع إغلاق التطبيق)",
+      pushOn: "إشعارات الإغلاق مفعّلة: ستصلك إشعارات الصلاة حتى والتطبيق مغلق.",
+      pushOff: "فعّل «تفعيل تنبيهات الصلاة» لتصلك الإشعارات والتطبيق مغلق.",
+      pushUnavailable: "إشعارات الإغلاق غير متاحة على هذا الجهاز أو لم يُضبط خادم الإشعارات.",
+      pushNeedsPermission: "اضغط «طلب إذن الإشعارات» ثم اسمح بالإشعارات.",
+      pushBlocked: "الإشعارات محظورة من إعدادات المتصفح. اسمح بها من إعدادات الموقع.",
+      pushError: "تعذّر الاتصال بخادم الإشعارات. ستتم إعادة المحاولة تلقائيًا.",
+      pushTestSent: "تم الجدولة. أغلق التطبيق الآن؛ سيصلك إشعار خلال دقيقة إلى دقيقتين.",
+      pushTestDisabled: "فعّل «تفعيل تنبيهات الصلاة» أولًا.",
+      pushTestRate: "انتظر قليلًا ثم أعد المحاولة.",
+      pushTestFail: "تعذّر إرسال الاختبار. تحقق من الاتصال وأعد المحاولة.",
       appName: "نور الصلاة",
       appTitle: "نور الصلاة | مواقيت الصلاة",
       ramadan: "رمضان",
@@ -195,7 +206,18 @@
       notificationsNeedsPermission: "Notifications need permission",
       notificationsUnsupported: "Notifications are not supported",
       testAlert: "Test alert and sound",
-      alertsNote: "Alerts and adhan sound work while the app is open, even in the background. Web apps cannot wake the device after they are fully closed. If you choose a reminder before the prayer, the notification arrives early and the adhan plays at the prayer time.",
+      alertsNote: "When prayer alerts are on, you get a notification at each prayer time even if the app is closed, sent by a small server that only delivers the notification (it never learns your location). The full adhan audio plays only while the app is open; when it is closed your phone plays its default notification sound. If you choose a reminder before the prayer, the notification arrives early.",
+      testPush: "Test notification in 1 minute (close the app)",
+      pushOn: "Closed-app notifications are on: prayer alerts will arrive even when the app is closed.",
+      pushOff: "Turn on \"Enable prayer notifications\" to get alerts while the app is closed.",
+      pushUnavailable: "Closed-app notifications are not available on this device, or the notification server is not set up.",
+      pushNeedsPermission: "Tap \"Request notification permission\" and allow notifications.",
+      pushBlocked: "Notifications are blocked in the browser. Allow them in the site settings.",
+      pushError: "Could not reach the notification server. It will retry automatically.",
+      pushTestSent: "Scheduled. Close the app now; a notification will arrive in one to two minutes.",
+      pushTestDisabled: "Turn on \"Enable prayer notifications\" first.",
+      pushTestRate: "Wait a moment and try again.",
+      pushTestFail: "Could not send the test. Check your connection and try again.",
       appName: "NoorPrayer",
       appTitle: "NoorPrayer | Prayer Times",
       ramadan: "Ramadan",
@@ -403,6 +425,7 @@
     setTextIf("test-alert-btn", "testAlert");
     setTextIf("privacy-link", "privacyPolicy");
     setTextIf("alerts-note", "alertsNote");
+    setTextIf("test-push-btn", "testPush");
     setTextIf("export-backup-btn", "exportBackup");
     setTextIf("copy-backup-btn", "copyJson");
     setTextIf("import-backup-btn", "importBackup");

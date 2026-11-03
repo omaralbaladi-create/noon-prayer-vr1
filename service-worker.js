@@ -24,6 +24,7 @@ const CORE_ASSETS = [
   "./assets/js/qibla.js",
   "./assets/js/prayer.js",
   "./assets/js/alerts.js",
+  "./assets/js/push.js",
   "./assets/js/ramadan.js",
   "./assets/js/app.js",
   "./assets/data/azkar.js",
@@ -198,4 +199,57 @@ self.addEventListener("fetch", (event) => {
 
   // Code, styles, data, manifest: network first, cache as the offline fallback.
   event.respondWith(networkFirst(request));
+});
+
+// ---------------------------------------------------------------
+// Web Push: prayer notifications while the app is closed
+// ---------------------------------------------------------------
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (_) {
+    data = { title: "NoorPrayer", body: event.data ? event.data.text() : "" };
+  }
+
+  const title = data.title || "NoorPrayer";
+  const options = {
+    body: data.body || "",
+    tag: data.tag || "noor-push",
+    icon: "./assets/icons/icon-512.png",
+    badge: "./assets/icons/icon-192.png",
+    lang: data.lang === "en" ? "en" : "ar",
+    dir: data.lang === "en" ? "ltr" : "rtl",
+    renotify: true,
+    data: { key: data.key || "" }
+  };
+
+  event.waitUntil(
+    (async () => {
+      // A browser must show something for every push, so always show it.
+      await self.registration.showNotification(title, options);
+
+      // If the app is open, let it also react (e.g. play the adhan audio).
+      const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      clients.forEach((c) => c.postMessage({ type: "PRAYER_PUSH", key: data.key || "" }));
+    })()
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  event.waitUntil(
+    (async () => {
+      const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const client of clients) {
+        if ("focus" in client) {
+          await client.focus();
+          client.postMessage({ type: "PRAYER_PUSH", key: (event.notification.data || {}).key || "" });
+          return;
+        }
+      }
+      await self.clients.openWindow("./");
+    })()
+  );
 });
