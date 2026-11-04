@@ -70,14 +70,21 @@ jobs:
           echo "KEYSTORE_PASSWORD=$PW" >> "$GITHUB_ENV"
 
       # APK = to install on your own phone. AAB = the file Google Play requires for the store.
-      - name: Build release APK and Play bundle (AAB)
+      # The APK uses Google's TEST ads, so tapping the banner on your own phone can never hurt the AdMob account.
+      - name: Build release APK (test ads)
         working-directory: android
-        run: gradle assembleRelease bundleRelease --no-daemon --stacktrace
+        run: gradle assembleRelease --no-daemon --stacktrace
 
-      - name: Name the files
-        run: |
-          cp android/app/build/outputs/apk/release/app-release.apk NoorPrayer.apk
-          cp android/app/build/outputs/bundle/release/app-release.aab NoorPrayer.aab
+      - name: Name the APK
+        run: cp android/app/build/outputs/apk/release/app-release.apk NoorPrayer.apk
+
+      # The Play bundle uses the LIVE AdMob ids.
+      - name: Build Play bundle (AAB, live ads)
+        working-directory: android
+        run: gradle bundleRelease -PadmobLive=true --no-daemon --stacktrace
+
+      - name: Name the bundle
+        run: cp android/app/build/outputs/bundle/release/app-release.aab NoorPrayer.aab
 
       - uses: actions/upload-artifact@v4
         with:
