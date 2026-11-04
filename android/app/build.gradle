@@ -16,20 +16,24 @@ android {
         versionName '1.5.0'
     }
 
+    // The signing key is NOT in the repository. CI decodes it from GitHub secrets and passes it in
+    // through these environment variables. Without them (a local build) the APK is debug-signed.
+    def releaseKeystore = System.getenv('KEYSTORE_FILE')
+
     signingConfigs {
-        release {
-            // A fixed key so every new build installs over the old one and keeps your settings.
-            // This is a personal sideload key, not a Play Store key.
-            storeFile file('../noor-release.keystore')
-            storePassword 'noorprayer'
-            keyAlias 'noor'
-            keyPassword 'noorprayer'
+        if (releaseKeystore) {
+            release {
+                storeFile file(releaseKeystore)
+                storePassword System.getenv('KEYSTORE_PASSWORD')
+                keyAlias 'noor'
+                keyPassword System.getenv('KEYSTORE_PASSWORD')
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            signingConfig releaseKeystore ? signingConfigs.release : signingConfigs.debug
             minifyEnabled false
         }
     }
