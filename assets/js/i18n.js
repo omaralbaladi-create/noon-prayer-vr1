@@ -3,6 +3,7 @@
     ar: {
       updateAvailable: "يتوفر إصدار جديد من التطبيق.",
       privacyPolicy: "سياسة الخصوصية",
+      adPrivacy: "خيارات الإعلانات والخصوصية",
       backupInvalid: "ملف النسخة الاحتياطية غير صالح. لم يتم تغيير أي بيانات.",
       backupCopyFailed: "تعذر النسخ تلقائيًا. انسخ النص من المربع يدويًا.",
       gpsLocation: "موقعي (GPS)",
@@ -204,6 +205,7 @@
     en: {
       updateAvailable: "A new version of the app is available.",
       privacyPolicy: "Privacy policy",
+      adPrivacy: "Ad privacy choices",
       backupInvalid: "Invalid backup file. Nothing was changed.",
       backupCopyFailed: "Could not copy automatically. Copy the text from the box manually.",
       gpsLocation: "My location (GPS)",
@@ -434,6 +436,7 @@
     setTextIf("notif-permission-btn", "requestNotifications");
     setTextIf("test-alert-btn", "testAlert");
     setTextIf("privacy-link", "privacyPolicy");
+    setTextIf("privacy-options-btn", "adPrivacy");
     setTextIf("alerts-note", "alertsNote");
     setTextIf("test-push-btn", "testPush");
     setTextIf("export-backup-btn", "exportBackup");

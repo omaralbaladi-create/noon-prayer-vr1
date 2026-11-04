@@ -4,16 +4,23 @@ plugins {
 
 def runNumber = (System.getenv('GITHUB_RUN_NUMBER') ?: '1').toInteger()
 
+// AdMob ids live in android/admob.properties (they are public, not secrets).
+// Until real ids are put there, Google's TEST ids are used, so no real ad is ever shown or clicked by mistake.
+def admob = new Properties()
+file('../admob.properties').withInputStream { admob.load(it) }
+
 android {
     namespace 'com.omaralbaladi.noorprayer'
-    compileSdk 34
+    compileSdk 36
 
     defaultConfig {
         applicationId 'com.omaralbaladi.noorprayer'
         minSdk 24
-        targetSdk 34
+        targetSdk 36
         versionCode 100 + runNumber
-        versionName '1.5.0'
+        versionName '1.6.0'
+        manifestPlaceholders = [admobAppId: admob.getProperty('appId')]
+        buildConfigField 'String', 'ADMOB_BANNER_ID', '"' + admob.getProperty('bannerId') + '"'
     }
 
     // The signing key is NOT in the repository. CI decodes it from GitHub secrets and passes it in
@@ -43,6 +50,10 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 
+    buildFeatures {
+        buildConfig true
+    }
+
     androidResources {
         noCompress 'mp3'
     }
@@ -56,4 +67,6 @@ android {
 dependencies {
     implementation 'androidx.core:core:1.13.1'
     implementation 'androidx.webkit:webkit:1.11.0'
+    implementation 'com.google.android.gms:play-services-ads:25.5.0'
+    implementation 'com.google.android.ump:user-messaging-platform:4.0.0'
 }

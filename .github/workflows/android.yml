@@ -10,6 +10,14 @@ on:
       - "privacy.html"
       - "manifest.json"
       - ".github/workflows/android.yml"
+  pull_request:
+    paths:
+      - "android/**"
+      - "assets/**"
+      - "index.html"
+      - "privacy.html"
+      - "manifest.json"
+      - ".github/workflows/android.yml"
   workflow_dispatch:
 
 permissions:
@@ -28,7 +36,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "8.9"
+          gradle-version: "8.11.1"
 
       - name: Bundle the web app into the Android project
         run: |
@@ -61,19 +69,26 @@ jobs:
           echo "KEYSTORE_FILE=$RUNNER_TEMP/noor-upload.keystore" >> "$GITHUB_ENV"
           echo "KEYSTORE_PASSWORD=$PW" >> "$GITHUB_ENV"
 
-      - name: Build release APK
+      # APK = to install on your own phone. AAB = the file Google Play requires for the store.
+      - name: Build release APK and Play bundle (AAB)
         working-directory: android
-        run: gradle assembleRelease --no-daemon --stacktrace
+        run: gradle assembleRelease bundleRelease --no-daemon --stacktrace
 
-      - name: Name the APK
-        run: cp android/app/build/outputs/apk/release/app-release.apk NoorPrayer.apk
+      - name: Name the files
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk NoorPrayer.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab NoorPrayer.aab
 
       - uses: actions/upload-artifact@v4
         with:
-          name: NoorPrayer-apk
-          path: NoorPrayer.apk
+          name: NoorPrayer-build
+          path: |
+            NoorPrayer.apk
+            NoorPrayer.aab
 
+      # Only builds of main become a public release; branch and pull-request builds stay private artifacts.
       - name: Publish release
+        if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: android-build-${{ github.run_number }}
@@ -81,5 +96,8 @@ jobs:
           body: |
             NoorPrayer Android app, build ${{ github.run_number }}.
             Download **NoorPrayer.apk**, open it on your phone and install it (allow "install unknown apps" for your browser if asked).
-          files: NoorPrayer.apk
+            **NoorPrayer.aab** is the bundle for uploading to Google Play (not for installing).
+          files: |
+            NoorPrayer.apk
+            NoorPrayer.aab
           make_latest: true

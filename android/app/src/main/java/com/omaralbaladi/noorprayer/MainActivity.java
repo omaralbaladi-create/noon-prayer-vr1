@@ -7,11 +7,13 @@ import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.provider.Settings;
+import android.view.ViewGroup;
 import android.webkit.GeolocationPermissions;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
@@ -20,8 +22,14 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 
 import androidx.core.app.NotificationManagerCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.webkit.WebViewAssetLoader;
 
 import org.json.JSONArray;
@@ -36,6 +44,7 @@ public class MainActivity extends Activity {
     private static final int REQ_LOCATION_START = 12;
 
     private WebView web;
+    private AdsManager ads;
     private GeolocationPermissions.Callback geoCallback;
     private String geoOrigin;
 
@@ -44,7 +53,33 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         web = new WebView(this);
-        setContentView(web);
+
+        // Android 15+ draws apps edge-to-edge. Lay the screen out explicitly: web app on top, a small ad strip
+        // at the bottom, both kept clear of the status bar, the navigation bar, cut-outs and the keyboard.
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView()).setAppearanceLightStatusBars(false);
+
+        final LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackgroundColor(Color.parseColor("#0f172a"));
+
+        final FrameLayout adStrip = new FrameLayout(this);
+        adStrip.setVisibility(android.view.View.GONE);
+
+        root.addView(web, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        root.addView(adStrip, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        setContentView(root);
+
+        ads = new AdsManager(this, adStrip, this::notifyAdsChanged);
+
+        ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
+            v.setPadding(bars.left, bars.top, bars.right, Math.max(bars.bottom, ime.bottom));
+            if (ads != null) ads.setKeyboardOpen(insets.isVisible(WindowInsetsCompat.Type.ime()));
+            return WindowInsetsCompat.CONSUMED;
+        });
 
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
@@ -104,6 +139,8 @@ public class MainActivity extends Activity {
                     Manifest.permission.ACCESS_FINE_LOCATION,
                     Manifest.permission.ACCESS_COARSE_LOCATION}, REQ_LOCATION_START);
         }
+
+        ads.start();
     }
 
     private boolean hasLocationPermission() {
@@ -125,7 +162,14 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        if (ads != null) ads.resume();
         notifyPermissionsChanged();
+    }
+
+    @Override
+    protected void onPause() {
+        if (ads != null) ads.pause();
+        super.onPause();
     }
 
     @Override
@@ -136,6 +180,7 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        if (ads != null) ads.destroy();
         if (web != null) {
             web.removeJavascriptInterface("NoorNative");
             web.destroy();
@@ -160,6 +205,12 @@ public class MainActivity extends Activity {
             askBatteryExemption();
             notifyPermissionsChanged();
         }
+    }
+
+    /** Tells the page that the ad-consent state is known, so it can show or hide "Ad privacy choices". */
+    private void notifyAdsChanged() {
+        if (web == null) return;
+        web.evaluateJavascript("window.dispatchEvent(new Event('native-ads'))", null);
     }
 
     private void notifyPermissionsChanged() {
@@ -256,6 +307,19 @@ public class MainActivity extends Activity {
                 runOnUiThread(() -> AlarmReceiver.deliver(MainActivity.this, row));
             } catch (Exception ignored) {
             }
+        }
+
+        /** True when the user must be offered a way to change their ad choices (EEA/UK etc.). */
+        @JavascriptInterface
+        public boolean privacyOptionsRequired() {
+            return ads != null && ads.privacyOptionsRequired();
+        }
+
+        @JavascriptInterface
+        public void showPrivacyOptions() {
+            runOnUiThread(() -> {
+                if (ads != null) ads.showPrivacyOptions();
+            });
         }
 
         @JavascriptInterface
