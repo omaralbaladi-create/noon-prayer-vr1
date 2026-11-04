@@ -44,19 +44,25 @@ jobs:
       - name: Prepare signing key (from GitHub secrets, never from the repo)
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEYSTORE_PASSWORD_RAW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
-          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD_RAW" ]; then
             echo "::error::Missing repository secrets ANDROID_KEYSTORE_BASE64 and/or ANDROID_KEYSTORE_PASSWORD (Settings > Secrets and variables > Actions)."
             exit 1
           fi
-          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/noor-upload.keystore"
+          # Pasting can add invisible characters (spaces, line breaks, direction marks). Keep only valid characters.
+          PW=$(printf '%s' "$KEYSTORE_PASSWORD_RAW" | tr -cd 'A-Za-z0-9')
+          echo "::add-mask::$PW"
+          printf '%s' "$KEYSTORE_BASE64" | tr -cd 'A-Za-z0-9+/=' | base64 -d > "$RUNNER_TEMP/noor-upload.keystore"
+          if ! keytool -list -keystore "$RUNNER_TEMP/noor-upload.keystore" -storepass "$PW" -alias noor > /dev/null 2>&1; then
+            echo "::error::The keystore could not be opened. Re-copy the password from noorprayer-signing-secrets.txt and the full text of noor-upload.keystore.b64 into the two secrets."
+            exit 1
+          fi
           echo "KEYSTORE_FILE=$RUNNER_TEMP/noor-upload.keystore" >> "$GITHUB_ENV"
+          echo "KEYSTORE_PASSWORD=$PW" >> "$GITHUB_ENV"
 
       - name: Build release APK
         working-directory: android
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: gradle assembleRelease --no-daemon --stacktrace
 
       - name: Name the APK
