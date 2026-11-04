@@ -133,8 +133,33 @@
     return "on";
   }
 
+  // Android only: the ad-consent message lets users in some regions (EEA/UK...) change their ad choices later.
+  function privacyOptionsRequired() {
+    try {
+      return !!(bridge() && bridge().privacyOptionsRequired && bridge().privacyOptionsRequired());
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function showPrivacyOptions() {
+    try {
+      if (bridge() && bridge().showPrivacyOptions) bridge().showPrivacyOptions();
+    } catch (_) {}
+  }
+
+  function refreshAdsButton() {
+    const btn = document.getElementById("privacy-options-btn");
+    if (btn) btn.classList.toggle("hidden", !privacyOptionsRequired());
+  }
+
   function start() {
     if (!isNative()) return;
+
+    const adsBtn = document.getElementById("privacy-options-btn");
+    if (adsBtn) adsBtn.addEventListener("click", showPrivacyOptions);
+    window.addEventListener("native-ads", refreshAdsButton);
+    refreshAdsButton();
 
     document.documentElement.classList.add("is-native-app");
     window.addEventListener("alerts-changed", scheduleSync);
@@ -148,5 +173,5 @@
     syncNow();
   }
 
-  window.Native = { isNative, start, syncNow, scheduleSync, requestPermissions, permissions, test, status };
+  window.Native = { isNative, start, syncNow, scheduleSync, requestPermissions, permissions, test, status, privacyOptionsRequired, showPrivacyOptions };
 })();

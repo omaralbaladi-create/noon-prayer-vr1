@@ -10,6 +10,14 @@ on:
       - "privacy.html"
       - "manifest.json"
       - ".github/workflows/android.yml"
+  pull_request:
+    paths:
+      - "android/**"
+      - "assets/**"
+      - "index.html"
+      - "privacy.html"
+      - "manifest.json"
+      - ".github/workflows/android.yml"
   workflow_dispatch:
 
 permissions:
@@ -28,7 +36,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "8.9"
+          gradle-version: "8.11.1"
 
       - name: Bundle the web app into the Android project
         run: |
@@ -61,19 +69,49 @@ jobs:
           echo "KEYSTORE_FILE=$RUNNER_TEMP/noor-upload.keystore" >> "$GITHUB_ENV"
           echo "KEYSTORE_PASSWORD=$PW" >> "$GITHUB_ENV"
 
-      - name: Build release APK
+      # APK = to install on your own phone. AAB = the file Google Play requires for the store.
+      # The APK uses Google's TEST ads, so tapping the banner on your own phone can never hurt the AdMob account.
+      - name: Build release APK (test ads)
         working-directory: android
         run: gradle assembleRelease --no-daemon --stacktrace
 
       - name: Name the APK
         run: cp android/app/build/outputs/apk/release/app-release.apk NoorPrayer.apk
 
+      # The Play bundle uses the LIVE AdMob ids.
+      - name: Build Play bundle (AAB, live ads)
+        working-directory: android
+        run: gradle bundleRelease -PadmobLive=true --no-daemon --stacktrace
+
+      - name: Name the bundle
+        run: cp android/app/build/outputs/bundle/release/app-release.aab NoorPrayer.aab
+
+      # Safety check: the store bundle must carry the LIVE AdMob id, the phone APK must carry only the TEST id.
+      - name: Check which AdMob ids each file contains
+        run: |
+          LIVE=$(grep '^liveAppId=' android/admob.properties | cut -d= -f2)
+          TEST=$(grep '^appId=' android/admob.properties | cut -d= -f2)
+          manifest_ids() { { unzip -p "$1" "$2" | strings -a; unzip -p "$1" "$2" | strings -a -e l; } | grep -o 'ca-app-pub-[0-9]*~[0-9]*' | sort -u; }
+          AAB_IDS=$(manifest_ids NoorPrayer.aab base/manifest/AndroidManifest.xml)
+          APK_IDS=$(manifest_ids NoorPrayer.apk AndroidManifest.xml)
+          echo "AAB app id(s): $AAB_IDS"
+          echo "APK app id(s): $APK_IDS"
+          echo "$AAB_IDS" | grep -qx "$LIVE" || { echo "::error::The Play bundle does not contain the live AdMob app id"; exit 1; }
+          echo "$AAB_IDS" | grep -qx "$TEST" && { echo "::error::The Play bundle still contains the TEST AdMob app id"; exit 1; }
+          echo "$APK_IDS" | grep -qx "$TEST" || { echo "::error::The phone APK does not contain the test AdMob app id"; exit 1; }
+          echo "$APK_IDS" | grep -qx "$LIVE" && { echo "::error::The phone APK contains the LIVE AdMob app id"; exit 1; }
+          echo "Ad id check passed."
+
       - uses: actions/upload-artifact@v4
         with:
-          name: NoorPrayer-apk
-          path: NoorPrayer.apk
+          name: NoorPrayer-build
+          path: |
+            NoorPrayer.apk
+            NoorPrayer.aab
 
+      # Only builds of main become a public release; branch and pull-request builds stay private artifacts.
       - name: Publish release
+        if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: android-build-${{ github.run_number }}
@@ -81,5 +119,8 @@ jobs:
           body: |
             NoorPrayer Android app, build ${{ github.run_number }}.
             Download **NoorPrayer.apk**, open it on your phone and install it (allow "install unknown apps" for your browser if asked).
-          files: NoorPrayer.apk
+            **NoorPrayer.aab** is the bundle for uploading to Google Play (not for installing).
+          files: |
+            NoorPrayer.apk
+            NoorPrayer.aab
           make_latest: true
