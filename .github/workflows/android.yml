@@ -86,6 +86,22 @@ jobs:
       - name: Name the bundle
         run: cp android/app/build/outputs/bundle/release/app-release.aab NoorPrayer.aab
 
+      # Safety check: the store bundle must carry the LIVE AdMob id, the phone APK must carry only the TEST id.
+      - name: Check which AdMob ids each file contains
+        run: |
+          LIVE=$(grep '^liveAppId=' android/admob.properties | cut -d= -f2)
+          TEST=$(grep '^appId=' android/admob.properties | cut -d= -f2)
+          manifest_ids() { { unzip -p "$1" "$2" | strings -a; unzip -p "$1" "$2" | strings -a -e l; } | grep -o 'ca-app-pub-[0-9]*~[0-9]*' | sort -u; }
+          AAB_IDS=$(manifest_ids NoorPrayer.aab base/manifest/AndroidManifest.xml)
+          APK_IDS=$(manifest_ids NoorPrayer.apk AndroidManifest.xml)
+          echo "AAB app id(s): $AAB_IDS"
+          echo "APK app id(s): $APK_IDS"
+          echo "$AAB_IDS" | grep -qx "$LIVE" || { echo "::error::The Play bundle does not contain the live AdMob app id"; exit 1; }
+          echo "$AAB_IDS" | grep -qx "$TEST" && { echo "::error::The Play bundle still contains the TEST AdMob app id"; exit 1; }
+          echo "$APK_IDS" | grep -qx "$TEST" || { echo "::error::The phone APK does not contain the test AdMob app id"; exit 1; }
+          echo "$APK_IDS" | grep -qx "$LIVE" && { echo "::error::The phone APK contains the LIVE AdMob app id"; exit 1; }
+          echo "Ad id check passed."
+
       - uses: actions/upload-artifact@v4
         with:
           name: NoorPrayer-build
