@@ -48,6 +48,7 @@
   }
 
   const MAX_PENDING = 60;
+  const TEST_ID = 999999; // the Test button's notification; the schedule refresh must not cancel it
   let notificationsGranted = false;
   let queue = Promise.resolve();
 
@@ -88,7 +89,10 @@
 
   function replaceSchedule(rows) {
     return LN.getPending()
-      .then((res) => (res.notifications && res.notifications.length ? LN.cancel({ notifications: res.notifications.map((x) => ({ id: x.id })) }) : null))
+      .then((res) => {
+        const ours = (res.notifications || []).filter((x) => x.id !== TEST_ID);
+        return ours.length ? LN.cancel({ notifications: ours.map((x) => ({ id: x.id })) }) : null;
+      })
       .then(() => {
         const list = rows.slice(0, MAX_PENDING).map((r, i) => toNotification(r, i + 1));
         return list.length ? LN.schedule({ notifications: list }) : null;
@@ -132,7 +136,7 @@
           }
           alert(MSG_TEST);
           row.t = Date.now() + 6000;
-          return LN.schedule({ notifications: [toNotification(row, 999999)] });
+          return LN.schedule({ notifications: [toNotification(row, TEST_ID)] });
         })
         .catch((err) => alert("Notification error: " + (err && err.message ? err.message : err)));
     },
