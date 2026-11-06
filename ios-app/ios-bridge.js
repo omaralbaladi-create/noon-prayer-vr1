@@ -148,6 +148,29 @@
     showPrivacyOptions() {},
   };
 
+
+  // ---- Screen layout ----------------------------------------------------------------------------
+  // The web view runs full screen (contentInset "never"), so keep the page clear of the status bar / notch
+  // and the home bar, and keep the sticky header below the status bar when scrolling.
+  const style = document.createElement("style");
+  style.textContent =
+    "body{padding-top:calc(12px + env(safe-area-inset-top)) !important;padding-bottom:calc(36px + env(safe-area-inset-bottom)) !important}" +
+    ".header-shell{top:env(safe-area-inset-top) !important}" +
+    'body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top);background:var(--bg);z-index:30;pointer-events:none}';
+  document.head.appendChild(style);
+
+  // Status bar text: dark on the light themes, light on the dark "midnight" theme.
+  const SB = (cap.Plugins && cap.Plugins.StatusBar) || (typeof cap.registerPlugin === "function" ? cap.registerPlugin("StatusBar") : null);
+  function applyStatusBar() {
+    if (!SB) return;
+    const dark = document.body && document.body.getAttribute("data-theme") === "midnight";
+    SB.setStyle({ style: dark ? "DARK" : "LIGHT" }).catch(() => {});
+  }
+  applyStatusBar();
+  if (typeof MutationObserver === "function" && document.body) {
+    new MutationObserver(applyStatusBar).observe(document.body, { attributes: true, attributeFilter: ["data-theme"] });
+  }
+
   const noteEl = document.getElementById("push-status");
   if (noteEl && typeof MutationObserver === "function") new MutationObserver(patchNote).observe(noteEl, { childList: true, characterData: true, subtree: true });
   patchNote();
