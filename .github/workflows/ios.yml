@@ -43,6 +43,11 @@ jobs:
           mkdir -p "$WWW"
           cp index.html privacy.html manifest.json "$WWW/"
           cp -r assets "$WWW/assets"
+          # iPhone alert scheduler: define window.NoorNative before native.js runs (the web files stay untouched).
+          cp ios-app/ios-bridge.js "$WWW/ios-bridge.js"
+          perl -0pi -e 's#(<script src="./assets/js/native.js"></script>)#<script src="./ios-bridge.js"></script>\n  $1#' "$WWW/index.html"
+          grep -n "ios-bridge.js\|assets/js/native.js" "$WWW/index.html"
+          test "$(grep -c 'ios-bridge.js' "$WWW/index.html")" -eq 1
 
       - name: Create the iOS project
         working-directory: ios-app
@@ -50,6 +55,25 @@ jobs:
           npm install --no-audit --no-fund
           npx cap add ios
           npx cap sync ios
+
+      - name: Add the adhan notification sounds to the app
+        working-directory: ios-app/ios/App
+        run: |
+          cp ../../sounds/*.caf App/
+          ruby -e '
+            require "xcodeproj"
+            proj = Xcodeproj::Project.open("App.xcodeproj")
+            target = proj.targets.find { |t| t.name == "App" }
+            group = proj.main_group["App"]
+            Dir["App/*.caf"].sort.each do |path|
+              name = File.basename(path)
+              next if group.files.any? { |f| f.path == name }
+              ref = group.new_file(name)
+              target.resources_build_phase.add_file_reference(ref)
+              puts "added #{name}"
+            end
+            proj.save
+          '
 
       - name: Build for the iOS Simulator (unsigned)
         working-directory: ios-app/ios/App
@@ -60,6 +84,18 @@ jobs:
             -configuration Debug \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             build | tail -40
           test ${PIPESTATUS[0]} -eq 0
+
+      - name: Check the built app contains the sounds and the bridge
+        working-directory: ios-app/ios/App
+        run: |
+          APP=build/Build/Products/Debug-iphonesimulator/App.app
+          ls "$APP" | head -50
+          test -f "$APP/adhan-makkah.caf"
+          test -f "$APP/adhan-madinah.caf"
+          grep -q "ios-bridge.js" "$APP/public/index.html"
+          test -f "$APP/public/ios-bridge.js"
+          echo "OK: sounds and bridge are in the app"
