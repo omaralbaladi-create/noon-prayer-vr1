@@ -18,7 +18,9 @@ android {
     compileSdk 36
 
     defaultConfig {
-        applicationId 'com.omaralbaladi.noorprayer'
+        // The store ID of the app. It can never be changed once the first release is uploaded to Google Play.
+        // (The code's own package, `namespace` above, is internal and unrelated to this.)
+        applicationId 'com.ageandcalculate.noorprayer'
         minSdk 24
         targetSdk 36
         versionCode 100 + runNumber
