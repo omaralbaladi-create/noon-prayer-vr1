@@ -266,6 +266,7 @@
     window.Alerts?.start?.();
     window.Push?.start?.();
     window.Native?.start?.();
+    window.Gold?.start?.();
     startDayRolloverWatcher();
   }
 
@@ -570,13 +571,47 @@
 
     window.DOM.on("zakat-gold-price", "input", (e) => {
       window.APP_STATE.settings.zakat.goldPrice = e.target.value;
+      window.APP_STATE.settings.zakat.goldManual = e.target.value !== "";
       window.StorageAPI.saveState();
       renderZakat();
     });
 
+    // Leaving an emptied field brings the market price back (not while the user is still typing).
+    window.DOM.on("zakat-gold-price", "change", (e) => {
+      if (e.target.value !== "") return;
+      // Wait for the field to lose focus; setValue never overwrites a field being typed in.
+      setTimeout(() => {
+        applyMarketPrices();
+        renderZakat();
+      }, 50);
+    });
+
     window.DOM.on("zakat-silver-price", "input", (e) => {
       window.APP_STATE.settings.zakat.silverPrice = e.target.value;
+      window.APP_STATE.settings.zakat.silverManual = e.target.value !== "";
       window.StorageAPI.saveState();
+      renderZakat();
+    });
+
+    window.DOM.on("zakat-silver-price", "change", (e) => {
+      if (e.target.value !== "") return;
+      // Wait for the field to lose focus; setValue never overwrites a field being typed in.
+      setTimeout(() => {
+        applyMarketPrices();
+        renderZakat();
+      }, 50);
+    });
+
+    window.DOM.on("zakat-use-market", "click", () => {
+      window.APP_STATE.settings.zakat.goldManual = false;
+      window.APP_STATE.settings.zakat.silverManual = false;
+      applyMarketPrices();
+      window.StorageAPI.saveState();
+      renderZakat();
+    });
+
+    window.addEventListener("gold-updated", () => {
+      applyMarketPrices();
       renderZakat();
     });
 
@@ -1159,7 +1194,57 @@
     persistAndRender();
   }
 
+  // Fills the zakat price fields from the daily market price, unless the user typed their own.
+  function applyMarketPrices() {
+    const market = window.Gold?.get?.();
+    const zakat = window.APP_STATE.settings.zakat;
+    if (!market) return;
+
+    // Prices typed before this feature existed count as the user's own.
+    if (zakat.goldManual === undefined) zakat.goldManual = String(zakat.goldPrice || "") !== "";
+    if (zakat.silverManual === undefined) zakat.silverManual = String(zakat.silverPrice || "") !== "";
+
+    if (!zakat.goldManual && market.gold24 > 0) {
+      zakat.goldPrice = String(market.gold24);
+      window.DOM.setValue("zakat-gold-price", zakat.goldPrice);
+    }
+    if (!zakat.silverManual && market.silver > 0) {
+      zakat.silverPrice = String(market.silver);
+      window.DOM.setValue("zakat-silver-price", zakat.silverPrice);
+    }
+    window.StorageAPI.saveState();
+  }
+
+  function renderMarketNote() {
+    const note = window.DOM.qs("zakat-market-note");
+    const btn = window.DOM.qs("zakat-use-market");
+    const market = window.Gold?.get?.();
+    if (!note || !btn) return;
+
+    if (!market) {
+      note.classList.add("hidden");
+      btn.classList.add("hidden");
+      return;
+    }
+
+    const ar = lang() === "ar";
+    const zakat = window.APP_STATE.settings.zakat;
+    const date = new Date(market.updated).toLocaleDateString(ar ? "ar-SA" : "en-US", { year: "numeric", month: "long", day: "numeric" });
+    const fmt = (v) => Number(v).toLocaleString(ar ? "ar-SA" : "en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const silverPart = market.silver > 0 ? (ar ? `، الفضة ${fmt(market.silver)}` : `, silver ${fmt(market.silver)}`) : "";
+
+    note.textContent = ar
+      ? `سعر السوق العالمي بالريال للغرام (تقريبي): الذهب عيار 24 ${fmt(market.gold24)}${silverPart} — بتاريخ ${date}. يُحدَّث يوميًا. سعر محلات الذهب قد يكون أعلى قليلًا، ويمكنك تعديل السعر.`
+      : `International market price in SAR per gram (approximate): 24k gold ${fmt(market.gold24)}${silverPart}, as of ${date}. Updated daily. Jewellers' prices can be slightly higher, and you can edit the price.`;
+    note.classList.remove("hidden");
+
+    const manual = !!(zakat.goldManual || zakat.silverManual);
+    btn.textContent = ar ? "استخدام سعر السوق" : "Use the market price";
+    btn.classList.toggle("hidden", !manual);
+  }
+
   function renderZakat() {
+    renderMarketNote();
     const num = (id) => Math.max(0, Number(window.DOM.qs(id)?.value || 0) || 0);
 
     const basis = window.DOM.qs("zakat-basis")?.value || "gold";

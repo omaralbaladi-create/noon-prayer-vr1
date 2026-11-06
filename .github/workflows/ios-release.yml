@@ -59,7 +59,7 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             DEVELOPMENT_TEAM="$TEAM_ID" \
             PRODUCT_BUNDLE_IDENTIFIER=com.ageandcalculate.noorprayer \
-            MARKETING_VERSION=1.6.0 \
+            MARKETING_VERSION=1.6.1 \
             CURRENT_PROJECT_VERSION=${{ github.run_number }} | tail -40
           test ${PIPESTATUS[0]} -eq 0
 
