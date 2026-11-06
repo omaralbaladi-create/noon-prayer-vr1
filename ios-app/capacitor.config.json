@@ -3,7 +3,7 @@
   "appName": "NoorPrayer",
   "webDir": "www",
   "ios": {
-    "contentInset": "always",
-    "backgroundColor": "#0f172a"
+    "contentInset": "never",
+    "backgroundColor": "#f6fffb"
   }
 }
