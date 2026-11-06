@@ -1,0 +1,95 @@
+name: iOS release (TestFlight)
+
+# Signed build uploaded to App Store Connect / TestFlight. Run it by hand: Actions -> "iOS release (TestFlight)" -> Run workflow.
+# Needs these repository secrets: IOS_ASC_KEY_ID, IOS_ASC_ISSUER_ID, IOS_ASC_KEY_P8 (App Store Connect API key, Admin access).
+# Signing is automatic: Xcode asks Apple (through the API key) for the certificate and profile, so no Mac is needed.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: macos-26
+    env:
+      KEY_ID: ${{ secrets.IOS_ASC_KEY_ID }}
+      ISSUER_ID: ${{ secrets.IOS_ASC_ISSUER_ID }}
+      TEAM_ID: "38W9AT2AS2"  # Apple Developer Team ID (not a secret)
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check the secrets are present
+        env:
+          KEY_P8: ${{ secrets.IOS_ASC_KEY_P8 }}
+        run: |
+          for v in KEY_ID ISSUER_ID KEY_P8; do
+            if [ -z "${!v}" ]; then echo "Missing secret for $v"; exit 1; fi
+          done
+
+      - name: Create the iOS project
+        run: ios-app/prepare.sh
+
+      - name: Store the API key
+        env:
+          KEY_P8: ${{ secrets.IOS_ASC_KEY_P8 }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/keys"
+          printf '%s\n' "$KEY_P8" > "$RUNNER_TEMP/keys/AuthKey_${KEY_ID}.p8"
+          chmod 600 "$RUNNER_TEMP/keys/AuthKey_${KEY_ID}.p8"
+          # Show only the first line (the BEGIN header) to confirm the key was pasted in full.
+          head -1 "$RUNNER_TEMP/keys/AuthKey_${KEY_ID}.p8"
+
+      - name: Archive (signed)
+        working-directory: ios-app/ios/App
+        run: |
+          xcodebuild archive \
+            -project App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_${KEY_ID}.p8" \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            PRODUCT_BUNDLE_IDENTIFIER=com.ageandcalculate.noorprayer \
+            MARKETING_VERSION=1.6.0 \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} | tail -40
+          test ${PIPESTATUS[0]} -eq 0
+
+      - name: Export and upload to TestFlight
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>${TEAM_ID}</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
+          </dict>
+          </plist>
+          PLIST
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_${KEY_ID}.p8" \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID" | tail -40
+          test ${PIPESTATUS[0]} -eq 0
+
+      - name: Remove the API key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/keys"

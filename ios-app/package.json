@@ -1,0 +1,13 @@
+{
+  "name": "noorprayer-ios",
+  "private": true,
+  "description": "iOS wrapper (Capacitor) around the NoorPrayer web app. The web files are copied into ./www by CI.",
+  "dependencies": {
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/ios": "^8.6.0",
+    "@capacitor/local-notifications": "^8.3.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.0"
+  }
+}

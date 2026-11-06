@@ -1,0 +1,9 @@
+{
+  "appId": "com.ageandcalculate.noorprayer",
+  "appName": "NoorPrayer",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "always",
+    "backgroundColor": "#0f172a"
+  }
+}
