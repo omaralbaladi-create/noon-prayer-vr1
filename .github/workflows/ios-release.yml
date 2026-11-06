@@ -1,7 +1,7 @@
 name: iOS release (TestFlight)
 
 # Signed build uploaded to App Store Connect / TestFlight. Run it by hand: Actions -> "iOS release (TestFlight)" -> Run workflow.
-# Needs these repository secrets: IOS_ASC_KEY_ID, IOS_ASC_ISSUER_ID, IOS_ASC_KEY_P8 (App Store Connect API key, Admin access), IOS_TEAM_ID.
+# Needs these repository secrets: IOS_ASC_KEY_ID, IOS_ASC_ISSUER_ID, IOS_ASC_KEY_P8 (App Store Connect API key, Admin access).
 # Signing is automatic: Xcode asks Apple (through the API key) for the certificate and profile, so no Mac is needed.
 
 on:
@@ -16,7 +16,7 @@ jobs:
     env:
       KEY_ID: ${{ secrets.IOS_ASC_KEY_ID }}
       ISSUER_ID: ${{ secrets.IOS_ASC_ISSUER_ID }}
-      TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+      TEAM_ID: "38W9AT2AS2"  # Apple Developer Team ID (not a secret)
     steps:
       - uses: actions/checkout@v4
 
@@ -28,7 +28,7 @@ jobs:
         env:
           KEY_P8: ${{ secrets.IOS_ASC_KEY_P8 }}
         run: |
-          for v in KEY_ID ISSUER_ID TEAM_ID KEY_P8; do
+          for v in KEY_ID ISSUER_ID KEY_P8; do
             if [ -z "${!v}" ]; then echo "Missing secret for $v"; exit 1; fi
           done
 
