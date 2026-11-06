@@ -16,7 +16,7 @@ on:
   pull_request:
     paths:
       - "ios-app/**"
-      - ".github/workflows/ios.yml"
+      - ".github/workflows/ios*.yml"
   workflow_dispatch:
 
 permissions:
@@ -37,43 +37,8 @@ jobs:
           xcodebuild -version
           node -v
 
-      - name: Bundle the web app
-        run: |
-          WWW=ios-app/www
-          mkdir -p "$WWW"
-          cp index.html privacy.html manifest.json "$WWW/"
-          cp -r assets "$WWW/assets"
-          # iPhone alert scheduler: define window.NoorNative before native.js runs (the web files stay untouched).
-          cp ios-app/ios-bridge.js "$WWW/ios-bridge.js"
-          perl -0pi -e 's#(<script src="./assets/js/native.js"></script>)#<script src="./ios-bridge.js"></script>\n  $1#' "$WWW/index.html"
-          grep -n "ios-bridge.js\|assets/js/native.js" "$WWW/index.html"
-          test "$(grep -c 'ios-bridge.js' "$WWW/index.html")" -eq 1
-
-      - name: Create the iOS project
-        working-directory: ios-app
-        run: |
-          npm install --no-audit --no-fund
-          npx cap add ios
-          npx cap sync ios
-
-      - name: Add the adhan notification sounds to the app
-        working-directory: ios-app/ios/App
-        run: |
-          cp ../../sounds/*.caf App/
-          ruby -e '
-            require "xcodeproj"
-            proj = Xcodeproj::Project.open("App.xcodeproj")
-            target = proj.targets.find { |t| t.name == "App" }
-            group = proj.main_group["App"]
-            Dir["App/*.caf"].sort.each do |path|
-              name = File.basename(path)
-              next if group.files.any? { |f| f.path == name }
-              ref = group.new_file(name)
-              target.resources_build_phase.add_file_reference(ref)
-              puts "added #{name}"
-            end
-            proj.save
-          '
+      - name: Create the iOS project (web files, icon, permissions, sounds)
+        run: ios-app/prepare.sh
 
       - name: Build for the iOS Simulator (unsigned)
         working-directory: ios-app/ios/App
@@ -97,5 +62,8 @@ jobs:
           test -f "$APP/adhan-makkah.caf"
           test -f "$APP/adhan-madinah.caf"
           grep -q "ios-bridge.js" "$APP/public/index.html"
+          /usr/libexec/PlistBuddy -c "Print :NSLocationWhenInUseUsageDescription" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :ITSAppUsesNonExemptEncryption" "$APP/Info.plist"
+          test -f "$APP/Assets.car"
           test -f "$APP/public/ios-bridge.js"
           echo "OK: sounds and bridge are in the app"
