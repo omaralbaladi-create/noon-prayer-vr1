@@ -16,6 +16,21 @@
   const LN = (cap.Plugins && cap.Plugins.LocalNotifications) || (typeof cap.registerPlugin === "function" ? cap.registerPlugin("LocalNotifications") : null);
   const MSG_OFF = "الإشعارات مغلقة لتطبيق NoorPrayer. فعّلها من الإعدادات ← الإشعارات ← NoorPrayer.\n\nNotifications are off for NoorPrayer. Turn them on in Settings > Notifications > NoorPrayer.";
 
+  const MSG_TEST = "سيصل إشعار الاختبار بعد 6 ثوانٍ من ضغط «موافق». اقفل الهاتف (الزر الجانبي) أو ارجع إلى الشاشة الرئيسية الآن، وتأكد أن وضع الصامت مغلق.\n\nThe test notification arrives 6 seconds after you tap OK. Lock the phone (side button) or go to the Home Screen now, and make sure Silent mode is off. iOS does not show notifications while the app is open on screen.";
+
+  // The settings screen text is written for Android; show the iPhone version instead (web files stay untouched).
+  const IOS_NOTE = {
+    ar: "تطبيق آيفون: يصلك إشعار بالأذان (مقطع حتى 30 ثانية) في وقت كل صلاة حتى مع إغلاق التطبيق أو قفل الهاتف. يتبع الصوت مستوى الرنين ويصمت في وضع الصامت. افتح التطبيق مرة كل أسبوعين تقريبًا لتجديد التنبيهات.",
+    en: "iPhone app: a notification with the adhan clip (up to 30 seconds) arrives at every prayer time, even when the app is closed or the phone is locked. The sound follows the ringer volume and is silent in Silent mode. Open the app about every two weeks to refresh the alerts.",
+  };
+
+  function patchNote() {
+    const el = document.getElementById("push-status");
+    if (!el || !/Android|أندرويد/.test(el.textContent)) return;
+    const en = window.I18N && window.I18N.getLang && window.I18N.getLang() === "en";
+    el.textContent = en ? IOS_NOTE.en : IOS_NOTE.ar;
+  }
+
   if (!LN) {
     // Plugin missing: still define the bridge so the app knows it is native, and tell the user on Test.
     const names = Object.keys(cap.Plugins || {}).join(", ");
@@ -103,19 +118,20 @@
       ensurePermission().catch(refreshPermissions);
     },
 
-    // Fires one alert in 3 seconds so the sound can be checked.
+    // Fires one alert 6 seconds after the user taps OK, so the phone can be locked first (iOS stays silent while the app is open).
     test(json) {
       let row = {};
       try {
         row = JSON.parse(json) || {};
       } catch (_) {}
-      row.t = Date.now() + 3000;
       ensurePermission()
         .then((granted) => {
           if (!granted) {
             alert(MSG_OFF);
             return null;
           }
+          alert(MSG_TEST);
+          row.t = Date.now() + 6000;
           return LN.schedule({ notifications: [toNotification(row, 999999)] });
         })
         .catch((err) => alert("Notification error: " + (err && err.message ? err.message : err)));
@@ -127,6 +143,10 @@
     },
     showPrivacyOptions() {},
   };
+
+  const noteEl = document.getElementById("push-status");
+  if (noteEl && typeof MutationObserver === "function") new MutationObserver(patchNote).observe(noteEl, { childList: true, characterData: true, subtree: true });
+  patchNote();
 
   // Ask for notification permission on first launch (iOS shows its prompt only once).
   ensurePermission().catch(refreshPermissions);
