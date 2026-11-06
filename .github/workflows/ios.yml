@@ -1,0 +1,65 @@
+name: Build iOS app (simulator check)
+
+# Stage 1: proves the iOS wrapper compiles on a cloud Mac. No Apple account is needed for this.
+# Building a signed app for TestFlight / the App Store needs a paid Apple Developer account (added later).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ios-app/**"
+      - "assets/**"
+      - "index.html"
+      - "privacy.html"
+      - "manifest.json"
+      - ".github/workflows/ios.yml"
+  pull_request:
+    paths:
+      - "ios-app/**"
+      - ".github/workflows/ios.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          node -v
+
+      - name: Bundle the web app
+        run: |
+          WWW=ios-app/www
+          mkdir -p "$WWW"
+          cp index.html privacy.html manifest.json "$WWW/"
+          cp -r assets "$WWW/assets"
+
+      - name: Create the iOS project
+        working-directory: ios-app
+        run: |
+          npm install --no-audit --no-fund
+          npx cap add ios
+          npx cap sync ios
+
+      - name: Build for the iOS Simulator (unsigned)
+        working-directory: ios-app/ios/App
+        run: |
+          xcodebuild \
+            -project App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build | tail -40
+          test ${PIPESTATUS[0]} -eq 0
