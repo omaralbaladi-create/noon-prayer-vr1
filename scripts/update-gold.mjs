@@ -2,7 +2,8 @@
 // Run by .github/workflows/gold-price.yml once a day. Needs Node 22 (built-in fetch). No API key.
 //
 // gold.json is served from GitHub Pages and read by the app's zakat calculator (assets/js/gold.js).
-// If every price source fails, this script exits with an error and leaves the old gold.json untouched.
+// If every price source fails, the old gold.json is left untouched; the script only exits with an error
+// when that file is more than 3 days old (or missing), so a single bad day does not send a failure email.
 
 import { readFile, writeFile } from "node:fs/promises";
 
@@ -13,10 +14,38 @@ const GRAMS_PER_TROY_OUNCE = 31.1034768;
 // Sanity limits for USD per troy ounce; anything outside is treated as bad data.
 const LIMITS = { gold: [800, 20000], silver: [5, 500] };
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Browser-like headers: some price sites answer 403 to bare script requests.
+const HEADERS = {
+  accept: "application/json",
+  "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+};
+
+// One request, retried up to 3 times with a pause (a single network hiccup should not fail the day).
 async function getJson(url) {
-  const res = await fetch(url, { headers: { accept: "application/json", "user-agent": "noorprayer-gold-updater" }, signal: AbortSignal.timeout(20000) });
-  if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
-  return res.json();
+  let lastErr;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(20000) });
+      if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      lastErr = err;
+      const cause = err && err.cause && err.cause.code ? ` (${err.cause.code})` : "";
+      console.warn(`  attempt ${attempt} failed for ${url}: ${err.message}${cause}`);
+      if (attempt < 3) await sleep(attempt * 5000);
+    }
+  }
+  throw lastErr;
+}
+
+// Swissquote's public quote feed returns a list of bid/ask pairs; use the middle of the first pair.
+async function swissquote(symbol) {
+  const data = await getJson(`https://forex-data-feed.swissquote.com/public-quote/feeds/instrument/${symbol}/USD`);
+  const prices = data && data[0] && data[0].spreadProfilePrices && data[0].spreadProfilePrices[0];
+  if (!prices) throw new Error("unexpected Swissquote response");
+  return (Number(prices.bid) + Number(prices.ask)) / 2;
 }
 
 const SOURCES = [
@@ -25,6 +54,14 @@ const SOURCES = [
     async fetch() {
       const [xau, xag] = await Promise.all([getJson("https://api.gold-api.com/price/XAU"), getJson("https://api.gold-api.com/price/XAG").catch(() => null)]);
       return { gold: Number(xau.price), silver: xag ? Number(xag.price) : null };
+    },
+  },
+  {
+    name: "swissquote.com",
+    async fetch() {
+      const gold = await swissquote("XAU");
+      const silver = await swissquote("XAG").catch(() => null);
+      return { gold, silver };
     },
   },
   {
@@ -70,6 +107,13 @@ for (const source of SOURCES) {
 
 if (!result) {
   console.error("All price sources failed:\n" + errors.join("\n"));
+  // One bad day is harmless: the app keeps showing the last price (with its date). Only fail loudly
+  // (which sends an email) when the saved price is more than 3 days old or missing.
+  const ageDays = previous && previous.updated ? (Date.now() - new Date(previous.updated).getTime()) / 86400000 : Infinity;
+  if (ageDays <= 3) {
+    console.warn(`Keeping the existing gold.json (${ageDays.toFixed(1)} days old). Will try again tomorrow.`);
+    process.exit(0);
+  }
   process.exit(1);
 }
 
