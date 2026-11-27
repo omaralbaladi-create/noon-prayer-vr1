@@ -58,10 +58,22 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             DEVELOPMENT_TEAM="$TEAM_ID" \
-            PRODUCT_BUNDLE_IDENTIFIER=com.ageandcalculate.noorprayer \
             MARKETING_VERSION=1.6.1 \
             CURRENT_PROJECT_VERSION=${{ github.run_number }} | tail -40
           test ${PIPESTATUS[0]} -eq 0
+
+      # An unsigned archive has no entitlements, and the widget needs the App Group. Sign the app and the widget
+      # ad hoc with their entitlements; the export step then re-signs both for the App Store keeping those entitlements.
+      - name: Add the App Group entitlement to the archive
+        run: |
+          APP="$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app"
+          ls "$APP/PlugIns"
+          codesign --force --sign - --entitlements ios-app/widget/NoorWidget.entitlements "$APP/PlugIns/NoorWidget.appex"
+          codesign --force --sign - --entitlements ios-app/widget/App.entitlements "$APP"
+          echo "--- app entitlements"; codesign -d --entitlements :- "$APP" 2>/dev/null
+          echo "--- widget entitlements"; codesign -d --entitlements :- "$APP/PlugIns/NoorWidget.appex" 2>/dev/null
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/PlugIns/NoorWidget.appex/Info.plist"
 
       - name: Export and upload to TestFlight
         run: |

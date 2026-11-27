@@ -67,3 +67,15 @@ jobs:
           test -f "$APP/Assets.car"
           test -f "$APP/public/ios-bridge.js"
           echo "OK: sounds and bridge are in the app"
+
+      - name: Check the widget is embedded and the plugin is wired in
+        working-directory: ios-app/ios/App
+        run: |
+          APP=build/Build/Products/Debug-iphonesimulator/App.app
+          ls "$APP/PlugIns"
+          test -d "$APP/PlugIns/NoorWidget.appex"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/PlugIns/NoorWidget.appex/Info.plist")" = "com.ageandcalculate.noorprayer.widget"
+          /usr/libexec/PlistBuddy -c "Print :NSExtension:NSExtensionPointIdentifier" "$APP/PlugIns/NoorWidget.appex/Info.plist"
+          grep -q "MainViewController" App/Base.lproj/Main.storyboard
+          grep -q "App.entitlements" App.xcodeproj/project.pbxproj
+          echo "OK: widget is embedded"

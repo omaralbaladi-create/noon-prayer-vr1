@@ -47,6 +47,46 @@
     return;
   }
 
+  // ---- Home / lock screen widget ---------------------------------------------------------------
+  // The native widget reads the next ~8 days of prayer times from shared storage (see widget/NoorWidget.swift).
+  // The page computes the times; this hands them to the small NoorWidget plugin in the app.
+  const WIDGET_DAYS = 8;
+  const WIDGET_KEYS = ["fajr", "dhuhr", "asr", "maghrib", "isha"];
+  const WG = typeof cap.registerPlugin === "function" ? cap.registerPlugin("NoorWidget") : null;
+  let lastWidgetJson = "";
+
+  function pushWidget() {
+    try {
+      if (!WG || !window.Prayer || typeof window.Prayer.buildPrayerTimes !== "function") return;
+      const base = new Date();
+      const days = [];
+      for (let d = 0; d < WIDGET_DAYS; d += 1) {
+        const day = new Date(base.getFullYear(), base.getMonth(), base.getDate() + d, 12, 0, 0);
+        const times = window.Prayer.buildPrayerTimes(day);
+        const row = {};
+        WIDGET_KEYS.forEach((k) => {
+          const v = times && times[k];
+          if (v && !Number.isNaN(v.getTime())) row[k] = v.getTime();
+        });
+        days.push(row);
+      }
+      // buildPrayerTimes remembers the last date it was given; point it back at today.
+      window.Prayer.buildPrayerTimes(new Date());
+      const I18N = window.I18N;
+      const names = {};
+      WIDGET_KEYS.forEach((k) => {
+        names[k] = I18N && typeof I18N.t === "function" ? I18N.t(k) : k;
+      });
+      const lang = I18N && I18N.getLang && I18N.getLang() === "en" ? "en" : "ar";
+      const json = JSON.stringify({ lang, names, days });
+      if (json === lastWidgetJson) return;
+      lastWidgetJson = json;
+      WG.setData({ json }).catch((err) => console.warn("widget data not saved", err && err.message ? err.message : err));
+    } catch (err) {
+      console.warn("widget data failed", err);
+    }
+  }
+
   const MAX_PENDING = 60;
   const TEST_ID = 999999; // the Test button's notification; the schedule refresh must not cancel it
   let notificationsGranted = false;
@@ -107,6 +147,7 @@
         rows = JSON.parse(json) || [];
       } catch (_) {}
       const count = Math.min(rows.length, MAX_PENDING);
+      pushWidget();
       queue = queue
         .then(() => (rows.length ? ensurePermission() : notificationsGranted))
         .then((granted) => (granted || !rows.length ? replaceSchedule(rows) : null))
